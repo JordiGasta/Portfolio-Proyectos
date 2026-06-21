@@ -1,51 +1,69 @@
-import Link from "next/link";
+"use client";
+
 import type { Proyecto } from "@/types/proyecto";
-import EstadoBadge from "@/components/proyectos/EstadoBadge";
-import BarraAvance from "@/components/proyectos/BarraAvance";
-import { formatearEuros } from "@/lib/format/formato";
+import CategoriaBadge from "@/components/proyectos/CategoriaBadge";
+import FaseBadge from "@/components/proyectos/FaseBadge";
+import EstadoSaludDot from "@/components/proyectos/EstadoSaludDot";
+import VariacionBadge from "@/components/proyectos/VariacionBadge";
+import {
+  calcularEAC,
+  calcularVariacionPorcentual,
+  obtenerProximoGate,
+  tieneGateVencido,
+} from "@/lib/proyectos/calculos";
+import { formatearEuros, formatearFecha } from "@/lib/format/formato";
 
 interface FilaProyectoProps {
   proyecto: Proyecto;
+  onSeleccionar: (proyecto: Proyecto) => void;
 }
 
-export default function FilaProyecto({ proyecto }: FilaProyectoProps) {
+export default function FilaProyecto({
+  proyecto,
+  onSeleccionar,
+}: FilaProyectoProps) {
+  const eac = calcularEAC(proyecto);
+  const variacion = calcularVariacionPorcentual(proyecto);
+  const proximoGate = obtenerProximoGate(proyecto);
+  const vencido = tieneGateVencido(proyecto);
+
   return (
-    <tr className="cursor-pointer hover:bg-slate-50">
-      <td className="px-5 py-4 font-medium">
-        <Link href={`/proyectos/${proyecto.id}`} className="block focus:outline-none">
-          {proyecto.codigo}
-        </Link>
+    <tr
+      onClick={() => onSeleccionar(proyecto)}
+      className="cursor-pointer hover:bg-slate-50"
+    >
+      <td
+        className="max-w-[220px] truncate px-5 py-4 font-medium"
+        title={proyecto.nombre}
+      >
+        {proyecto.nombre}
       </td>
       <td className="px-5 py-4">
-        <Link href={`/proyectos/${proyecto.id}`} className="block">
-          {proyecto.nombre}
-        </Link>
+        <CategoriaBadge categoria={proyecto.categoria} />
       </td>
       <td className="px-5 py-4">
-        <Link href={`/proyectos/${proyecto.id}`} className="block">
-          {proyecto.responsable}
-        </Link>
+        <FaseBadge fase={proyecto.fase} />
       </td>
       <td className="px-5 py-4">
-        <Link href={`/proyectos/${proyecto.id}`} className="block">
-          {proyecto.fase}
-        </Link>
+        <EstadoSaludDot estadoSalud={proyecto.estadoSalud} />
       </td>
+      <td
+        className={`px-5 py-4 text-sm ${
+          vencido ? "font-semibold text-rose-600" : "text-slate-700"
+        }`}
+      >
+        {proximoGate ?? "—"}
+        {proyecto.fechaProximoGate
+          ? ` · ${formatearFecha(proyecto.fechaProximoGate)}`
+          : ""}
+      </td>
+      <td className="px-5 py-4">{formatearEuros(proyecto.presupuestoAprobado)}</td>
+      <td className="px-5 py-4">{formatearEuros(proyecto.importeGastado)}</td>
+      <td className="px-5 py-4">{formatearEuros(eac)}</td>
       <td className="px-5 py-4">
-        <Link href={`/proyectos/${proyecto.id}`} className="block">
-          <EstadoBadge estado={proyecto.estado} />
-        </Link>
+        <VariacionBadge porcentaje={variacion} />
       </td>
-      <td className="px-5 py-4">
-        <Link href={`/proyectos/${proyecto.id}`} className="block">
-          {formatearEuros(proyecto.presupuestoAprobado)}
-        </Link>
-      </td>
-      <td className="px-5 py-4">
-        <Link href={`/proyectos/${proyecto.id}`} className="block">
-          <BarraAvance porcentaje={proyecto.avance} />
-        </Link>
-      </td>
+      <td className="px-5 py-4 text-slate-400">→</td>
     </tr>
   );
 }

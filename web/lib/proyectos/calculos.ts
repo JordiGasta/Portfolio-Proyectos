@@ -1,5 +1,7 @@
 import type {
+  CategoriaProyecto,
   EstadoProyecto,
+  EstadoSalud,
   FaseProyecto,
   Gate,
   Proyecto,
@@ -68,25 +70,6 @@ export function contarPorEstado(
   }));
 }
 
-export function contarPorFase(
-  proyectos: Proyecto[],
-): Array<{ etiqueta: FaseProyecto; cantidad: number }> {
-  const fases: FaseProyecto[] = [
-    "Fase 0 — Fase previa",
-    "Fase I — Inicio / Project Charter",
-    "Fase IIA — Análisis de escenarios",
-    "Fase IIB — Ingeniería básica solución escogida",
-    "Fase III — Ingeniería de detalle",
-    "Fase IV — Ejecución",
-    "Fase V — Cierre",
-  ];
-
-  return fases.map((fase) => ({
-    etiqueta: fase,
-    cantidad: proyectos.filter((proyecto) => proyecto.fase === fase).length,
-  }));
-}
-
 export const ordenFases: FaseProyecto[] = [
   "Fase 0 — Fase previa",
   "Fase I — Inicio / Project Charter",
@@ -96,6 +79,15 @@ export const ordenFases: FaseProyecto[] = [
   "Fase IV — Ejecución",
   "Fase V — Cierre",
 ];
+
+export function contarPorFase(
+  proyectos: Proyecto[],
+): Array<{ etiqueta: FaseProyecto; cantidad: number }> {
+  return ordenFases.map((fase) => ({
+    etiqueta: fase,
+    cantidad: proyectos.filter((proyecto) => proyecto.fase === fase).length,
+  }));
+}
 
 export const ordenGates: Gate[] = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"];
 
@@ -137,6 +129,20 @@ export function calcularProgresionGates(
 
     return { gate, estado };
   });
+}
+
+/**
+ * Devuelve el siguiente gate pendiente tras el gate actual del
+ * proyecto, o null si ya ha superado el último gate (G6).
+ */
+export function obtenerProximoGate(proyecto: Proyecto): Gate | null {
+  const indiceActual = ordenGates.indexOf(proyecto.gateActual);
+
+  if (indiceActual === -1 || indiceActual >= ordenGates.length - 1) {
+    return null;
+  }
+
+  return ordenGates[indiceActual + 1];
 }
 
 export function calcularDiasDesdeUltimoGate(proyecto: Proyecto): number | null {
@@ -184,4 +190,70 @@ export function tieneGateVencido(proyecto: Proyecto): boolean {
   hoy.setHours(0, 0, 0, 0);
 
   return hoy.getTime() > fechaProximoGate.getTime();
+}
+
+export function esProyectoActivo(proyecto: Proyecto): boolean {
+  return proyecto.fase !== "Fase V — Cierre";
+}
+
+export function proyectosActivos(proyectos: Proyecto[]): Proyecto[] {
+  return proyectos.filter(esProyectoActivo);
+}
+
+export const ordenCategorias: CategoriaProyecto[] = [
+  "Creación de valor",
+  "Protección de valor",
+  "Obligatorio",
+];
+
+export function contarActivosPorCategoria(
+  proyectos: Proyecto[],
+): Array<{ categoria: CategoriaProyecto; cantidad: number }> {
+  const activos = proyectosActivos(proyectos);
+
+  return ordenCategorias.map((categoria) => ({
+    categoria,
+    cantidad: activos.filter((proyecto) => proyecto.categoria === categoria)
+      .length,
+  }));
+}
+
+export function sumarPresupuestoActivos(proyectos: Proyecto[]): number {
+  return proyectosActivos(proyectos).reduce(
+    (total, proyecto) => total + proyecto.presupuestoAprobado,
+    0,
+  );
+}
+
+export function sumarGastadoActivos(proyectos: Proyecto[]): number {
+  return proyectosActivos(proyectos).reduce(
+    (total, proyecto) => total + proyecto.importeGastado,
+    0,
+  );
+}
+
+export function contarSobrecostes(proyectos: Proyecto[]): number {
+  return proyectos.filter(tieneSobrecoste).length;
+}
+
+export const ordenSalud: EstadoSalud[] = [
+  "En curso",
+  "En riesgo",
+  "Fuera de control",
+];
+
+export function contarPorSalud(
+  proyectos: Proyecto[],
+): Array<{ estadoSalud: EstadoSalud; cantidad: number }> {
+  const elegibles = proyectos.filter(
+    (proyecto) =>
+      proyecto.estado !== "En pausa" && proyecto.estado !== "Cancelado",
+  );
+
+  return ordenSalud.map((estadoSalud) => ({
+    estadoSalud,
+    cantidad: elegibles.filter(
+      (proyecto) => proyecto.estadoSalud === estadoSalud,
+    ).length,
+  }));
 }

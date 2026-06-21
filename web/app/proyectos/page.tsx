@@ -6,20 +6,23 @@ import TablaProyectos from "@/components/proyectos/TablaProyectos";
 import FiltrosProyectos, {
   type FiltrosProyectosValor,
 } from "@/components/proyectos/FiltrosProyectos";
+import DetalleProyectoModal from "@/components/proyectos/DetalleProyectoModal";
 import { proyectos } from "@/lib/data/proyectos";
 import { filtrarProyectos } from "@/lib/proyectos/filtros";
+import type { Proyecto } from "@/types/proyecto";
 
 const filtrosIniciales: FiltrosProyectosValor = {
-  texto: "",
-  estado: "Todos",
   fase: "Todas",
-  departamento: "Todos",
+  categoria: "Todas",
+  estadoSalud: "Todos",
 };
 
 export default function PaginaProyectos() {
   const [filtros, setFiltros] = useState<FiltrosProyectosValor>(
     filtrosIniciales,
   );
+  const [proyectoSeleccionado, setProyectoSeleccionado] =
+    useState<Proyecto | null>(null);
 
   const proyectosFiltrados = useMemo(
     () => filtrarProyectos(proyectos, filtros),
@@ -40,8 +43,8 @@ export default function PaginaProyectos() {
             <h2 className="mt-2 text-3xl font-bold">Proyectos</h2>
 
             <p className="mt-2 text-slate-600">
-              Listado completo de proyectos del portfolio. Utiliza los
-              filtros para acotar los resultados.
+              Listado completo de proyectos del portfolio. Selecciona uno
+              para ver su ficha completa.
             </p>
           </header>
 
@@ -53,10 +56,18 @@ export default function PaginaProyectos() {
               titulo="Listado de proyectos"
               descripcion={`${proyectosFiltrados.length} de ${proyectos.length} proyectos`}
               sinBorde
+              onSeleccionar={setProyectoSeleccionado}
             />
           </section>
         </section>
       </div>
+
+      {proyectoSeleccionado && (
+        <DetalleProyectoModal
+          proyecto={proyectoSeleccionado}
+          onCerrar={() => setProyectoSeleccionado(null)}
+        />
+      )}
     </main>
   );
 }

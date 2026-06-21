@@ -6,6 +6,7 @@ interface TablaProyectosProps {
   titulo?: string;
   descripcion?: string;
   sinBorde?: boolean;
+  onSeleccionar: (proyecto: Proyecto) => void;
 }
 
 export default function TablaProyectos({
@@ -13,6 +14,7 @@ export default function TablaProyectos({
   titulo = "Proyectos",
   descripcion = "Relación de proyectos incluidos en el portfolio.",
   sinBorde = false,
+  onSeleccionar,
 }: TablaProyectosProps) {
   return (
     <section
@@ -37,22 +39,29 @@ export default function TablaProyectos({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-left text-sm">
+        <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="px-5 py-3 font-medium">Código</th>
               <th className="px-5 py-3 font-medium">Proyecto</th>
-              <th className="px-5 py-3 font-medium">Responsable</th>
+              <th className="px-5 py-3 font-medium">Tipo</th>
               <th className="px-5 py-3 font-medium">Fase</th>
               <th className="px-5 py-3 font-medium">Estado</th>
+              <th className="px-5 py-3 font-medium">Próximo gate</th>
               <th className="px-5 py-3 font-medium">Presupuesto</th>
-              <th className="px-5 py-3 font-medium">Avance</th>
+              <th className="px-5 py-3 font-medium">Actuals</th>
+              <th className="px-5 py-3 font-medium">EAC</th>
+              <th className="px-5 py-3 font-medium">Variación</th>
+              <th className="px-5 py-3 font-medium"></th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-200">
             {proyectos.map((proyecto) => (
-              <FilaProyecto key={proyecto.id} proyecto={proyecto} />
+              <FilaProyecto
+                key={proyecto.id}
+                proyecto={proyecto}
+                onSeleccionar={onSeleccionar}
+              />
             ))}
           </tbody>
         </table>

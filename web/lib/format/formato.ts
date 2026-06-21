@@ -27,3 +27,11 @@ export function formatearFecha(fechaIso: string): string {
 export function formatearPorcentaje(valor: number): string {
   return `${valor} %`;
 }
+
+/**
+ * Extrae la parte corta de una etiqueta de fase, p. ej.
+ * "Fase IIB — Ingeniería básica solución escogida" -> "Fase IIB".
+ */
+export function obtenerCodigoFaseCorto(fase: string): string {
+  return fase.split("—")[0].trim();
+}
