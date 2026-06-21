@@ -3,9 +3,7 @@
 import { useMemo, useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import TablaProyectos from "@/components/proyectos/TablaProyectos";
-import FiltrosProyectos, {
-  type FiltrosProyectosValor,
-} from "@/components/proyectos/FiltrosProyectos";
+import FiltrosProyectos, { type FiltrosProyectosValor } from "@/components/proyectos/FiltrosProyectos";
 import DetalleProyectoModal from "@/components/proyectos/DetalleProyectoModal";
 import ProyectoFormModal from "@/components/proyectos/ProyectoFormModal";
 import { useProyectos } from "@/lib/proyectos/ProyectosContext";
@@ -18,17 +16,14 @@ const filtrosIniciales: FiltrosProyectosValor = {
   estadoSalud: "Todos",
 };
 
+type EstadoFormulario = "nuevo" | "editar" | null;
+
 export default function PaginaProyectos() {
   const { proyectos, agregarProyecto, actualizarProyecto } = useProyectos();
-  const [filtros, setFiltros] = useState<FiltrosProyectosValor>(
-    filtrosIniciales,
-  );
-  const [proyectoSeleccionado, setProyectoSeleccionado] =
-    useState<Proyecto | null>(null);
- const [formularioAbierto, setFormularioAbierto] = useState<"nuevo" | "editar" | null>(null);
-  const [proyectoEnEdicion, setProyectoEnEdicion] = useState<Proyecto | null>(
-    null,
-  );
+  const [filtros, setFiltros] = useState<FiltrosProyectosValor>(filtrosIniciales);
+  const [proyectoSeleccionado, setProyectoSeleccionado] = useState<Proyecto | null>(null);
+  const [formularioAbierto, setFormularioAbierto] = useState<EstadoFormulario>(null);
+  const [proyectoEnEdicion, setProyectoEnEdicion] = useState<Proyecto | null>(null);
 
   const proyectosFiltrados = useMemo(
     () => filtrarProyectos(proyectos, filtros),
