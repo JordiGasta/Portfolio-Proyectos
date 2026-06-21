@@ -17,11 +17,13 @@ import { formatearEuros, formatearFecha } from "@/lib/format/formato";
 interface DetalleProyectoModalProps {
   proyecto: Proyecto;
   onCerrar: () => void;
+  onEditar: () => void;
 }
 
 export default function DetalleProyectoModal({
   proyecto,
   onCerrar,
+  onEditar,
 }: DetalleProyectoModalProps) {
   const eac = calcularEAC(proyecto);
   const variacion = calcularVariacionPorcentual(proyecto);
@@ -56,7 +58,7 @@ export default function DetalleProyectoModal({
               etiqueta="Estado"
               valor={<EstadoSaludDot estadoSalud={proyecto.estadoSalud} />}
             />
-            <Campo etiqueta="Propietario" valor={proyecto.propietario} />
+            <Campo etiqueta="Propietario" valor={proyecto.propietario || "—"} />
             <Campo etiqueta="Sponsor" valor={proyecto.sponsor} />
             <Campo etiqueta="Rigurosidad" valor={proyecto.rigurosidad} />
             <Campo
@@ -156,6 +158,7 @@ export default function DetalleProyectoModal({
             </button>
             <button
               type="button"
+              onClick={onEditar}
               className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
             >
               Editar proyecto

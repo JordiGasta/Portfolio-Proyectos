@@ -1,3 +1,5 @@
+"use client";
+
 import Sidebar from "@/components/layout/Sidebar";
 import ResumenIndicadores from "@/components/dashboard/ResumenIndicadores";
 import PortfolioMixChart from "@/components/dashboard/PortfolioMixChart";
@@ -5,10 +7,11 @@ import HealthBreakdown from "@/components/dashboard/HealthBreakdown";
 import TablaProyectosActivos from "@/components/dashboard/TablaProyectosActivos";
 import CapexDemandResumen from "@/components/dashboard/CapexDemandResumen";
 import GraficoBarrasFase from "@/components/dashboard/GraficoBarrasFase";
-import { proyectos } from "@/lib/data/proyectos";
+import { useProyectos } from "@/lib/proyectos/ProyectosContext";
 import { contarPorFase, proyectosActivos } from "@/lib/proyectos/calculos";
 
 export default function Home() {
+  const { proyectos } = useProyectos();
   const distribucionPorFase = contarPorFase(proyectos);
   const activos = proyectosActivos(proyectos);
 

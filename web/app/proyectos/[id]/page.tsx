@@ -1,24 +1,38 @@
-import { notFound } from "next/navigation";
+"use client";
+
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import EstadoBadge from "@/components/proyectos/EstadoBadge";
 import BarraAvance from "@/components/proyectos/BarraAvance";
 import DatoFicha from "@/components/proyectos/DatoFicha";
-import { proyectos } from "@/lib/data/proyectos";
+import { useProyectos } from "@/lib/proyectos/ProyectosContext";
 import { formatearEuros, formatearFecha } from "@/lib/format/formato";
 
-interface PaginaFichaProyectoProps {
-  params: Promise<{ id: string }>;
-}
-
-export default async function PaginaFichaProyecto({
-  params,
-}: PaginaFichaProyectoProps) {
-  const { id } = await params;
-  const proyecto = proyectos.find((elemento) => elemento.id === id);
+export default function PaginaFichaProyecto() {
+  const params = useParams<{ id: string }>();
+  const { proyectos } = useProyectos();
+  const proyecto = proyectos.find((elemento) => elemento.id === params.id);
 
   if (!proyecto) {
-    notFound();
+    return (
+      <main className="min-h-screen bg-slate-100 text-slate-900">
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <section className="flex-1 p-6 lg:p-10">
+            <p className="text-slate-600">
+              No se ha encontrado el proyecto solicitado.
+            </p>
+            <Link
+              href="/proyectos"
+              className="mt-4 inline-block text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              ← Volver al listado de proyectos
+            </Link>
+          </section>
+        </div>
+      </main>
+    );
   }
 
   return (

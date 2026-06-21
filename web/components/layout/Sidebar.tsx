@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import SidebarLink from "@/components/layout/SidebarLink";
-import { proyectos } from "@/lib/data/proyectos";
+import { useProyectos } from "@/lib/proyectos/ProyectosContext";
 import { tieneGateVencido } from "@/lib/proyectos/calculos";
 import { usuarioActual } from "@/lib/sesion";
 
@@ -22,6 +22,7 @@ const enlaces: EnlaceMenu[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { proyectos } = useProyectos();
   const gatesVencidos = proyectos.filter(tieneGateVencido).length;
 
   return (

@@ -7,7 +7,8 @@ import FiltrosProyectos, {
   type FiltrosProyectosValor,
 } from "@/components/proyectos/FiltrosProyectos";
 import DetalleProyectoModal from "@/components/proyectos/DetalleProyectoModal";
-import { proyectos } from "@/lib/data/proyectos";
+import ProyectoFormModal from "@/components/proyectos/ProyectoFormModal";
+import { useProyectos } from "@/lib/proyectos/ProyectosContext";
 import { filtrarProyectos } from "@/lib/proyectos/filtros";
 import type { Proyecto } from "@/types/proyecto";
 
@@ -18,16 +19,42 @@ const filtrosIniciales: FiltrosProyectosValor = {
 };
 
 export default function PaginaProyectos() {
+  const { proyectos, agregarProyecto, actualizarProyecto } = useProyectos();
   const [filtros, setFiltros] = useState<FiltrosProyectosValor>(
     filtrosIniciales,
   );
   const [proyectoSeleccionado, setProyectoSeleccionado] =
     useState<Proyecto | null>(null);
+ const [formularioAbierto, setFormularioAbierto] = useState<"nuevo" | "editar" | null>(null);
+  const [proyectoEnEdicion, setProyectoEnEdicion] = useState<Proyecto | null>(
+    null,
+  );
 
   const proyectosFiltrados = useMemo(
     () => filtrarProyectos(proyectos, filtros),
-    [filtros],
+    [proyectos, filtros],
   );
+
+  const abrirNuevo = () => {
+    setProyectoEnEdicion(null);
+    setFormularioAbierto("nuevo");
+  };
+
+  const abrirEdicion = (proyecto: Proyecto) => {
+    setProyectoSeleccionado(null);
+    setProyectoEnEdicion(proyecto);
+    setFormularioAbierto("editar");
+  };
+
+  const guardarProyecto = (proyecto: Proyecto, esNuevo: boolean) => {
+    if (esNuevo) {
+      agregarProyecto(proyecto);
+    } else {
+      actualizarProyecto(proyecto);
+    }
+    setFormularioAbierto(null);
+    setProyectoEnEdicion(null);
+  };
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -57,6 +84,7 @@ export default function PaginaProyectos() {
               descripcion={`${proyectosFiltrados.length} de ${proyectos.length} proyectos`}
               sinBorde
               onSeleccionar={setProyectoSeleccionado}
+              onNuevo={abrirNuevo}
             />
           </section>
         </section>
@@ -66,6 +94,19 @@ export default function PaginaProyectos() {
         <DetalleProyectoModal
           proyecto={proyectoSeleccionado}
           onCerrar={() => setProyectoSeleccionado(null)}
+          onEditar={() => abrirEdicion(proyectoSeleccionado)}
+        />
+      )}
+
+      {formularioAbierto && (
+        <ProyectoFormModal
+          proyectoBase={proyectoEnEdicion ?? undefined}
+          proyectosExistentes={proyectos}
+          onGuardar={guardarProyecto}
+          onCerrar={() => {
+            setFormularioAbierto(null);
+            setProyectoEnEdicion(null);
+          }}
         />
       )}
     </main>

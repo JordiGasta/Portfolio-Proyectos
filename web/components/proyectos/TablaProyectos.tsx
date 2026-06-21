@@ -7,6 +7,7 @@ interface TablaProyectosProps {
   descripcion?: string;
   sinBorde?: boolean;
   onSeleccionar: (proyecto: Proyecto) => void;
+  onNuevo?: () => void;
 }
 
 export default function TablaProyectos({
@@ -15,6 +16,7 @@ export default function TablaProyectos({
   descripcion = "Relación de proyectos incluidos en el portfolio.",
   sinBorde = false,
   onSeleccionar,
+  onNuevo,
 }: TablaProyectosProps) {
   return (
     <section
@@ -32,6 +34,7 @@ export default function TablaProyectos({
 
         <button
           type="button"
+          onClick={onNuevo}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
         >
           Nuevo proyecto
