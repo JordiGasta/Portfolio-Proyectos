@@ -1,4 +1,4 @@
-import type { Proyecto } from "@/types/proyecto";
+import type { CategoriaProyecto, Proyecto } from "@/types/proyecto";
 
 export interface Trimestre {
   anio: number;
@@ -29,10 +29,6 @@ function trimestresIguales(a: Trimestre, b: Trimestre): boolean {
   return a.anio === b.anio && a.trimestre === b.trimestre;
 }
 
-/**
- * Genera una lista de `cantidad` trimestres consecutivos a partir del
- * trimestre actual (o de la fecha indicada).
- */
 export function generarTrimestres(
   cantidad: number,
   desde: Date = new Date(),
@@ -47,10 +43,6 @@ export function generarTrimestres(
   return lista;
 }
 
-/**
- * Lista de trimestres calendario comprendidos entre dos fechas
- * (ambos extremos inclusive).
- */
 function trimestresEntreFechas(fechaInicio: Date, fechaFin: Date): Trimestre[] {
   const indiceInicio = indiceTrimestre(obtenerTrimestreDeFecha(fechaInicio));
   const indiceFin = indiceTrimestre(obtenerTrimestreDeFecha(fechaFin));
@@ -68,12 +60,6 @@ export interface DemandaTrimestre {
   total: number;
 }
 
-/**
- * Reparte linealmente el coste de cada fase (con fecha de inicio, fin
- * y coste definidos) entre los trimestres calendario que abarca, y
- * suma el resultado por proyecto para obtener la demanda total de
- * cada uno de los trimestres solicitados.
- */
 export function calcularDemandaPorTrimestre(
   proyectos: Proyecto[],
   trimestres: Trimestre[],
@@ -113,10 +99,6 @@ export function calcularDemandaPorTrimestre(
   return totales;
 }
 
-/**
- * Suma la demanda de los 4 trimestres de un año concreto. Se usa para
- * la tarjeta "Demanda del ejercicio" del Overview.
- */
 export function calcularDemandaAnual(proyectos: Proyecto[], anio: number): number {
   const trimestresDelAnio: Trimestre[] = [1, 2, 3, 4].map((trimestre) => ({
     anio,
@@ -125,4 +107,122 @@ export function calcularDemandaAnual(proyectos: Proyecto[], anio: number): numbe
 
   const demanda = calcularDemandaPorTrimestre(proyectos, trimestresDelAnio);
   return demanda.reduce((total, item) => total + item.total, 0);
+}
+
+export type DemandaPorCategoria = Record<CategoriaProyecto, number>;
+
+export interface DemandaTrimestreSegmentada {
+  trimestre: Trimestre;
+  porCategoria: DemandaPorCategoria;
+  total: number;
+}
+
+/**
+ * Igual que calcularDemandaPorTrimestre, pero desglosando el importe
+ * de cada trimestre por categoría del proyecto (para el gráfico
+ * apilado de la vista de Demanda CAPEX).
+ */
+export function calcularDemandaPorTrimestrePorCategoria(
+  proyectos: Proyecto[],
+  trimestres: Trimestre[],
+): DemandaTrimestreSegmentada[] {
+  const totales: DemandaTrimestreSegmentada[] = trimestres.map(
+    (trimestre) => ({
+      trimestre,
+      porCategoria: {
+        "Creación de valor": 0,
+        "Protección de valor": 0,
+        Obligatorio: 0,
+      },
+      total: 0,
+    }),
+  );
+
+  proyectos.forEach((proyecto) => {
+    Object.values(proyecto.detallePorFase).forEach((detalle) => {
+      if (!detalle?.coste || !detalle.fechaInicio || !detalle.fechaFin) {
+        return;
+      }
+
+      const inicio = new Date(`${detalle.fechaInicio}T00:00:00`);
+      const fin = new Date(`${detalle.fechaFin}T00:00:00`);
+      const trimestresFase = trimestresEntreFechas(inicio, fin);
+
+      if (trimestresFase.length === 0) {
+        return;
+      }
+
+      const costePorTrimestre = detalle.coste / trimestresFase.length;
+
+      trimestresFase.forEach((trimestreFase) => {
+        const entrada = totales.find((item) =>
+          trimestresIguales(item.trimestre, trimestreFase),
+        );
+        if (entrada) {
+          entrada.porCategoria[proyecto.categoria] += costePorTrimestre;
+          entrada.total += costePorTrimestre;
+        }
+      });
+    });
+  });
+
+  return totales;
+}
+
+export interface ContribucionProyecto {
+  proyecto: Proyecto;
+  monto: number;
+}
+
+export interface ContribucionesTrimestre {
+  trimestre: Trimestre;
+  contribuciones: ContribucionProyecto[];
+}
+
+/**
+ * Para cada trimestre de la ventana indicada, calcula qué proyectos
+ * contribuyen a la demanda de ese trimestre y cuánto aporta cada uno.
+ * Se usa para mostrar el detalle en el tooltip de la barra.
+ */
+export function calcularContribucionesPorTrimestre(
+  proyectos: Proyecto[],
+  trimestres: Trimestre[],
+): ContribucionesTrimestre[] {
+  return trimestres.map((trimestre) => {
+    const contribuciones: ContribucionProyecto[] = [];
+
+    proyectos.forEach((proyecto) => {
+      let montoProyecto = 0;
+
+      Object.values(proyecto.detallePorFase).forEach((detalle) => {
+        if (!detalle?.coste || !detalle.fechaInicio || !detalle.fechaFin) {
+          return;
+        }
+
+        const inicio = new Date(`${detalle.fechaInicio}T00:00:00`);
+        const fin = new Date(`${detalle.fechaFin}T00:00:00`);
+        const trimestresFase = trimestresEntreFechas(inicio, fin);
+
+        if (trimestresFase.length === 0) {
+          return;
+        }
+
+        const perteneceAlTrimestre = trimestresFase.some((item) =>
+          trimestresIguales(item, trimestre),
+        );
+
+        if (perteneceAlTrimestre) {
+          montoProyecto += detalle.coste / trimestresFase.length;
+        }
+      });
+
+      if (montoProyecto > 0) {
+        contribuciones.push({ proyecto, monto: montoProyecto });
+      }
+    });
+
+    contribuciones.sort((a, b) => b.monto - a.monto);
+
+    return { trimestre, contribuciones };
+  });
 }
