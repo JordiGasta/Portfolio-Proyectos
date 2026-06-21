@@ -1,0 +1,64 @@
+import type { Proyecto } from "@/types/proyecto";
+import FilaProyecto from "@/components/proyectos/FilaProyecto";
+
+interface TablaProyectosProps {
+  proyectos: Proyecto[];
+  titulo?: string;
+  descripcion?: string;
+}
+
+/**
+ * Tabla completa de proyectos. Cada fila enlaza con la ficha individual
+ * del proyecto correspondiente.
+ */
+export default function TablaProyectos({
+  proyectos,
+  titulo = "Proyectos",
+  descripcion = "Relación de proyectos incluidos en el portfolio.",
+}: TablaProyectosProps) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-xl font-semibold">{titulo}</h3>
+          <p className="text-sm text-slate-500">{descripcion}</p>
+        </div>
+
+        <button
+          type="button"
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        >
+          Nuevo proyecto
+        </button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] text-left text-sm">
+          <thead className="bg-slate-50 text-slate-600">
+            <tr>
+              <th className="px-5 py-3 font-medium">Código</th>
+              <th className="px-5 py-3 font-medium">Proyecto</th>
+              <th className="px-5 py-3 font-medium">Responsable</th>
+              <th className="px-5 py-3 font-medium">Fase</th>
+              <th className="px-5 py-3 font-medium">Estado</th>
+              <th className="px-5 py-3 font-medium">Presupuesto</th>
+              <th className="px-5 py-3 font-medium">Avance</th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-slate-200">
+            {proyectos.map((proyecto) => (
+              <FilaProyecto key={proyecto.id} proyecto={proyecto} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {proyectos.length === 0 && (
+        <p className="p-5 text-sm text-slate-500">
+          No hay proyectos que coincidan con los criterios indicados.
+        </p>
+      )}
+    </section>
+  );
+}
