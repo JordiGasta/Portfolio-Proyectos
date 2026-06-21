@@ -45,6 +45,10 @@ export type EstadoSalud = "En curso" | "En riesgo" | "Fuera de control";
 
 export type Gate = "G0" | "G1" | "G2" | "G3" | "G4" | "G5" | "G6";
 
+export type NivelRiesgo = "Bajo" | "Medio" | "Alto";
+
+export type HorizonteTemporal = "Corto plazo" | "Medio plazo" | "Largo plazo";
+
 export interface DetalleFase {
   coste?: number;
   fechaInicio?: string;
@@ -82,4 +86,6 @@ export interface Proyecto {
   exposicionRiesgo?: number;
   beneficioEsperado?: number;
   detallePorFase: Partial<Record<FaseProyecto, DetalleFase>>;
+  nivelRiesgo: NivelRiesgo;
+  horizonteTemporal: HorizonteTemporal;
 }

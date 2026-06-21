@@ -32,6 +32,8 @@ export const proyectos: Proyecto[] = [
     etc: 175000,
     numeroJobBC: "BC-2026-0142",
     beneficioEsperado: 120000,
+    nivelRiesgo: "Medio",
+    horizonteTemporal: "Medio plazo",
     detallePorFase: {
       "Fase 0 — Fase previa": { coste: 5000, fechaInicio: "2025-11-01", fechaFin: "2025-11-30" },
       "Fase I — Inicio / Project Charter": { coste: 8000, fechaInicio: "2025-12-01", fechaFin: "2025-12-20" },
@@ -72,6 +74,8 @@ export const proyectos: Proyecto[] = [
     etc: 250000,
     numeroJobBC: "BC-2026-0158",
     beneficioEsperado: 90000,
+    nivelRiesgo: "Bajo",
+    horizonteTemporal: "Corto plazo",
     detallePorFase: {
       "Fase 0 — Fase previa": { coste: 4000, fechaInicio: "2025-12-01", fechaFin: "2025-12-15" },
       "Fase I — Inicio / Project Charter": { coste: 6000, fechaInicio: "2026-01-01", fechaFin: "2026-01-20" },
@@ -112,6 +116,8 @@ export const proyectos: Proyecto[] = [
     etc: 168000,
     numeroJobBC: null,
     exposicionRiesgo: 45000,
+    nivelRiesgo: "Bajo",
+    horizonteTemporal: "Medio plazo",
     detallePorFase: {
       "Fase 0 — Fase previa": { coste: 3000, fechaInicio: "2026-02-01", fechaFin: "2026-02-20" },
       "Fase I — Inicio / Project Charter": { coste: 5000, fechaInicio: "2026-03-01", fechaFin: "2026-04-15" },
@@ -153,6 +159,8 @@ export const proyectos: Proyecto[] = [
     etc: 40000,
     numeroJobBC: "BC-2025-0098",
     exposicionRiesgo: 80000,
+    nivelRiesgo: "Alto",
+    horizonteTemporal: "Corto plazo",
     detallePorFase: {
       "Fase 0 — Fase previa": { coste: 2000, fechaInicio: "2025-08-01", fechaFin: "2025-08-20" },
       "Fase I — Inicio / Project Charter": { coste: 4000, fechaInicio: "2025-09-01", fechaFin: "2025-09-20" },
@@ -192,6 +200,8 @@ export const proyectos: Proyecto[] = [
     etc: 60000,
     numeroJobBC: null,
     exposicionRiesgo: 25000,
+    nivelRiesgo: "Bajo",
+    horizonteTemporal: "Largo plazo",
     detallePorFase: {
       "Fase 0 — Fase previa": { coste: 1500, fechaInicio: "2026-05-01", fechaFin: "2026-05-20" },
       "Fase I — Inicio / Project Charter": { coste: 3000, fechaInicio: "2026-05-21", fechaFin: "2026-06-15" },
@@ -231,6 +241,8 @@ export const proyectos: Proyecto[] = [
     etc: 0,
     numeroJobBC: "BC-2025-0061",
     beneficioEsperado: 150000,
+    nivelRiesgo: "Medio",
+    horizonteTemporal: "Corto plazo",
     detallePorFase: {
       "Fase 0 — Fase previa": { coste: 5000, fechaInicio: "2024-11-01", fechaFin: "2024-11-20" },
       "Fase I — Inicio / Project Charter": { coste: 9000, fechaInicio: "2024-12-01", fechaFin: "2024-12-20" },
@@ -271,6 +283,8 @@ export const proyectos: Proyecto[] = [
     etc: 0,
     numeroJobBC: null,
     exposicionRiesgo: 10000,
+    nivelRiesgo: "Alto",
+    horizonteTemporal: "Corto plazo",
     detallePorFase: {
       "Fase 0 — Fase previa": { coste: 1000, fechaInicio: "2025-05-01", fechaFin: "2025-05-20" },
       "Fase I — Inicio / Project Charter": { coste: 3500, fechaInicio: "2025-06-01", fechaFin: "2025-07-01" },

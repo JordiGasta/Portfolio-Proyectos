@@ -9,6 +9,8 @@ import type {
   EstadoSalud,
   FaseProyecto,
   Gate,
+  HorizonteTemporal,
+  NivelRiesgo,
   Prioridad,
   Proyecto,
   Rigurosidad,
@@ -52,6 +54,12 @@ const estadosProyecto: EstadoProyecto[] = [
 
 const prioridades: Prioridad[] = ["Alta", "Media", "Baja"];
 const rigurosidades: Rigurosidad[] = ["R1", "R2", "R3"];
+const nivelesRiesgo: NivelRiesgo[] = ["Bajo", "Medio", "Alto"];
+const horizontes: HorizonteTemporal[] = [
+  "Corto plazo",
+  "Medio plazo",
+  "Largo plazo",
+];
 
 interface ProyectoFormModalProps {
   proyectoBase?: Proyecto;
@@ -94,6 +102,8 @@ function crearProyectoVacio(proyectosExistentes: Proyecto[]): Proyecto {
     numeroJobBC: null,
     exposicionRiesgo: undefined,
     beneficioEsperado: undefined,
+    nivelRiesgo: "Medio",
+    horizonteTemporal: "Medio plazo",
     detallePorFase: {},
   };
 }
@@ -353,6 +363,44 @@ export default function ProyectoFormModal({
                   {ordenSalud.map((estado) => (
                     <option key={estado} value={estado}>
                       {estado}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+
+              <Campo etiqueta="Nivel de riesgo">
+                <select
+                  value={proyecto.nivelRiesgo}
+                  onChange={(e) =>
+                    actualizarCampo(
+                      "nivelRiesgo",
+                      e.target.value as NivelRiesgo,
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                >
+                  {nivelesRiesgo.map((nivel) => (
+                    <option key={nivel} value={nivel}>
+                      {nivel}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+
+              <Campo etiqueta="Horizonte temporal">
+                <select
+                  value={proyecto.horizonteTemporal}
+                  onChange={(e) =>
+                    actualizarCampo(
+                      "horizonteTemporal",
+                      e.target.value as HorizonteTemporal,
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                >
+                  {horizontes.map((horizonte) => (
+                    <option key={horizonte} value={horizonte}>
+                      {horizonte}
                     </option>
                   ))}
                 </select>

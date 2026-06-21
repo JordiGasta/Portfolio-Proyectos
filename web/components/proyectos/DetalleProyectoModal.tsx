@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ReactNode } from "react";
 import type { Proyecto } from "@/types/proyecto";
 import EstadoSaludDot from "@/components/proyectos/EstadoSaludDot";
@@ -12,6 +13,7 @@ import {
   calcularVariacionPorcentual,
   obtenerProximoGate,
 } from "@/lib/proyectos/calculos";
+import { generarGateReviewDocx } from "@/lib/proyectos/gateReviewDocx";
 import { formatearEuros, formatearFecha } from "@/lib/format/formato";
 
 interface DetalleProyectoModalProps {
@@ -28,6 +30,23 @@ export default function DetalleProyectoModal({
   const eac = calcularEAC(proyecto);
   const variacion = calcularVariacionPorcentual(proyecto);
   const proximoGate = obtenerProximoGate(proyecto);
+  const [generando, setGenerando] = useState(false);
+  const [errorGeneracion, setErrorGeneracion] = useState<string | null>(null);
+
+  const manejarGenerarPaquete = async () => {
+    setGenerando(true);
+    setErrorGeneracion(null);
+
+    try {
+      await generarGateReviewDocx(proyecto);
+    } catch {
+      setErrorGeneracion(
+        "No se ha podido generar el documento. Inténtalo de nuevo.",
+      );
+    } finally {
+      setGenerando(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 py-10">
@@ -143,7 +162,7 @@ export default function DetalleProyectoModal({
             </p>
           </section>
 
-          <section className="mt-6 flex flex-wrap gap-3 border-t border-slate-200 pt-6">
+          <section className="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-6">
             <button
               type="button"
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -152,9 +171,11 @@ export default function DetalleProyectoModal({
             </button>
             <button
               type="button"
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              onClick={manejarGenerarPaquete}
+              disabled={generando}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
-              Generar paquete de gate review
+              {generando ? "Generando…" : "Generar paquete de gate review"}
             </button>
             {onEditar && (
               <button
@@ -164,6 +185,9 @@ export default function DetalleProyectoModal({
               >
                 Editar proyecto
               </button>
+            )}
+            {errorGeneracion && (
+              <p className="text-sm text-rose-600">{errorGeneracion}</p>
             )}
           </section>
         </div>
