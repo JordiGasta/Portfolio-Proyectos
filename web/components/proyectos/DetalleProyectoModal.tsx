@@ -17,7 +17,7 @@ import { formatearEuros, formatearFecha } from "@/lib/format/formato";
 interface DetalleProyectoModalProps {
   proyecto: Proyecto;
   onCerrar: () => void;
-  onEditar: () => void;
+  onEditar?: () => void;
 }
 
 export default function DetalleProyectoModal({
@@ -156,13 +156,15 @@ export default function DetalleProyectoModal({
             >
               Generar paquete de gate review
             </button>
-            <button
-              type="button"
-              onClick={onEditar}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-            >
-              Editar proyecto
-            </button>
+            {onEditar && (
+              <button
+                type="button"
+                onClick={onEditar}
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              >
+                Editar proyecto
+              </button>
+            )}
           </section>
         </div>
       </div>
