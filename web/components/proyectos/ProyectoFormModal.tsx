@@ -25,6 +25,7 @@ import {
   ordenObjetivosEstrategicos,
 } from "@/lib/proyectos/calculos";
 import { generarIdentificadorProyecto } from "@/lib/proyectos/identificadores";
+import SelectorPersona from "@/components/proyectos/SelectorPersona";
 
 const tiposProyecto: TipoProyecto[] = [
   "CAPEX",
@@ -213,21 +214,19 @@ export default function ProyectoFormModal({
                 </select>
               </Campo>
 
-              <Campo etiqueta="Sponsor *">
-                <input
-                  type="text" required value={proyecto.sponsor}
-                  onChange={(e) => actualizarCampo("sponsor", e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
+              <SelectorPersona
+                etiqueta="Sponsor *"
+                valor={proyecto.sponsor}
+                onCambiar={(valor) => actualizarCampo("sponsor", valor)}
+                obligatorio
+              />
 
-              <Campo etiqueta="Project Manager *">
-                <input
-                  type="text" required value={proyecto.responsable}
-                  onChange={(e) => actualizarCampo("responsable", e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
+              <SelectorPersona
+                etiqueta="Project Manager *"
+                valor={proyecto.responsable}
+                onCambiar={(valor) => actualizarCampo("responsable", valor)}
+                obligatorio
+              />
             </div>
 
             <div className="mt-4">
