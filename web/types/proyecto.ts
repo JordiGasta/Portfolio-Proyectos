@@ -1,12 +1,3 @@
-export type EstadoProyecto =
-  | "Propuesta"
-  | "En estudio"
-  | "Aprobado"
-  | "En ejecución"
-  | "En pausa"
-  | "Finalizado"
-  | "Cancelado";
-
 export type FaseProyecto =
   | "Fase 0 — Fase previa"
   | "Fase I — Inicio / Project Charter"
@@ -41,9 +32,21 @@ export type CategoriaProyecto =
   | "Protección de valor"
   | "Obligatorio";
 
-export type EstadoSalud = "En curso" | "En riesgo" | "Fuera de control";
+export type EstadoProyecto =
+  | "En curso"
+  | "En riesgo"
+  | "Fuera de control"
+  | "En pausa"
+  | "Cancelado";
 
-export type Gate = "G0" | "G1" | "G2" | "G3" | "G4" | "G5" | "G6";
+export type ObjetivoEstrategico =
+  | "Fiabilidad operativa"
+  | "Energía y coste"
+  | "Calidad y seguridad alimentaria"
+  | "Backbone digital"
+  | "Cumplimiento normativo";
+
+export type Gate = "G0" | "G1" | "G2A" | "G2B" | "G3" | "G4" | "G5";
 
 export type NivelRiesgo = "Bajo" | "Medio" | "Alto";
 
@@ -63,7 +66,6 @@ export interface Proyecto {
   responsable: string;
   departamento: Departamento;
   tipo: TipoProyecto;
-  estado: EstadoProyecto;
   fase: FaseProyecto;
   rigurosidad: Rigurosidad;
   presupuestoAprobado: number;
@@ -75,17 +77,20 @@ export interface Proyecto {
   prioridad: Prioridad;
   observaciones: string;
   categoria: CategoriaProyecto;
-  estadoSalud: EstadoSalud;
+  estado: EstadoProyecto;
+  objetivoEstrategico: ObjetivoEstrategico;
   propietario: string;
   sponsor: string;
   gateActual: Gate;
+  gateStatus: number[];
   fechaProximoGate?: string;
   fechaUltimoGate?: string;
   etc: number;
   numeroJobBC: string | null;
   exposicionRiesgo?: number;
   beneficioEsperado?: number;
-  detallePorFase: Partial<Record<FaseProyecto, DetalleFase>>;
+  motivoCancelacion?: string;
   nivelRiesgo: NivelRiesgo;
   horizonteTemporal: HorizonteTemporal;
+  detallePorFase: Partial<Record<FaseProyecto, DetalleFase>>;
 }

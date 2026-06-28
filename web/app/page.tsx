@@ -27,8 +27,7 @@ export default function Home() {
             </p>
             <h2 className="mt-2 text-3xl font-bold">Resumen</h2>
             <p className="mt-2 text-slate-600">
-              Visión general del estado económico, temporal y de salud del
-              portfolio.
+              Visión general del estado económico, temporal y de salud del portfolio.
             </p>
           </header>
 
@@ -45,10 +44,7 @@ export default function Home() {
 
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <CapexDemandResumen proyectos={proyectos} />
-            <GraficoBarrasFase
-              titulo="Distribución por fase"
-              elementos={distribucionPorFase}
-            />
+            <GraficoBarrasFase titulo="Distribución por fase" elementos={distribucionPorFase} />
           </div>
         </section>
       </div>

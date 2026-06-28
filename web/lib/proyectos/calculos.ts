@@ -1,9 +1,9 @@
 import type {
-  CategoriaProyecto,
   EstadoProyecto,
-  EstadoSalud,
   FaseProyecto,
   Gate,
+  ObjetivoEstrategico,
+  CategoriaProyecto,
   Proyecto,
 } from "@/types/proyecto";
 
@@ -17,7 +17,7 @@ export interface ResumenPortfolio {
 }
 
 export function estaRetrasado(proyecto: Proyecto): boolean {
-  if (proyecto.estado === "Finalizado" || proyecto.estado === "Cancelado") {
+  if (proyecto.estado === "Cancelado" || proyecto.fase === "Fase V — Cierre") {
     return false;
   }
 
@@ -32,7 +32,7 @@ export function calcularResumen(proyectos: Proyecto[]): ResumenPortfolio {
   return {
     totalProyectos: proyectos.length,
     proyectosEnEjecucion: proyectos.filter(
-      (proyecto) => proyecto.estado === "En ejecución",
+      (proyecto) => proyecto.fase === "Fase IV — Ejecución",
     ).length,
     proyectosRetrasados: proyectos.filter(estaRetrasado).length,
     presupuestoTotal: proyectos.reduce(
@@ -48,26 +48,6 @@ export function calcularResumen(proyectos: Proyecto[]): ResumenPortfolio {
       0,
     ),
   };
-}
-
-export function contarPorEstado(
-  proyectos: Proyecto[],
-): Array<{ etiqueta: EstadoProyecto; cantidad: number }> {
-  const estados: EstadoProyecto[] = [
-    "Propuesta",
-    "En estudio",
-    "Aprobado",
-    "En ejecución",
-    "En pausa",
-    "Finalizado",
-    "Cancelado",
-  ];
-
-  return estados.map((estado) => ({
-    etiqueta: estado,
-    cantidad: proyectos.filter((proyecto) => proyecto.estado === estado)
-      .length,
-  }));
 }
 
 export const ordenFases: FaseProyecto[] = [
@@ -89,7 +69,8 @@ export function contarPorFase(
   }));
 }
 
-export const ordenGates: Gate[] = ["G0", "G1", "G2", "G3", "G4", "G5", "G6"];
+/** 7 gates, en orden, según el documento de base de datos. */
+export const ordenGates: Gate[] = ["G0", "G1", "G2A", "G2B", "G3", "G4", "G5"];
 
 export function calcularEAC(proyecto: Proyecto): number {
   return proyecto.importeGastado + proyecto.etc;
@@ -113,28 +94,32 @@ export function tieneSobrecoste(proyecto: Proyecto): boolean {
 
 export type EstadoGate = "superado" | "actual" | "pendiente";
 
+/**
+ * Calcula la progresión de los 7 gates a partir del array
+ * gateStatus almacenado (0=pendiente, 1=actual, 2=superado).
+ */
 export function calcularProgresionGates(
   proyecto: Proyecto,
 ): Array<{ gate: Gate; estado: EstadoGate }> {
-  const indiceActual = ordenGates.indexOf(proyecto.gateActual);
-
   return ordenGates.map((gate, indice) => {
-    let estado: EstadoGate = "pendiente";
-
-    if (indice < indiceActual) {
-      estado = "superado";
-    } else if (indice === indiceActual) {
-      estado = "actual";
-    }
-
+    const valor = proyecto.gateStatus[indice] ?? 0;
+    const estado: EstadoGate =
+      valor === 2 ? "superado" : valor === 1 ? "actual" : "pendiente";
     return { gate, estado };
   });
 }
 
 /**
- * Devuelve el siguiente gate pendiente tras el gate actual del
- * proyecto, o null si ya ha superado el último gate (G6).
+ * Genera el array gateStatus correspondiente a un gate actual dado,
+ * marcando como superados todos los anteriores y como actual el
+ * indicado. Se usa al guardar el formulario de proyecto, para
+ * mantener gateActual y gateStatus siempre coherentes entre sí.
  */
+export function derivarGateStatusDesdeGateActual(gateActual: Gate): number[] {
+  const indice = ordenGates.indexOf(gateActual);
+  return ordenGates.map((_, i) => (i < indice ? 2 : i === indice ? 1 : 0));
+}
+
 export function obtenerProximoGate(proyecto: Proyecto): Gate | null {
   const indiceActual = ordenGates.indexOf(proyecto.gateActual);
 
@@ -181,7 +166,7 @@ export function tieneGateVencido(proyecto: Proyecto): boolean {
     return false;
   }
 
-  if (proyecto.estado === "Finalizado" || proyecto.estado === "Cancelado") {
+  if (proyecto.estado === "Cancelado" || proyecto.fase === "Fase V — Cierre") {
     return false;
   }
 
@@ -236,15 +221,25 @@ export function contarSobrecostes(proyectos: Proyecto[]): number {
   return proyectos.filter(tieneSobrecoste).length;
 }
 
-export const ordenSalud: EstadoSalud[] = [
+/** Los 3 valores de salud "activa" (sin pausa/cancelado), para el Health breakdown. */
+export const ordenSalud: EstadoProyecto[] = [
   "En curso",
   "En riesgo",
   "Fuera de control",
 ];
 
+/** Los 5 valores completos del campo estado, para filtros y formularios. */
+export const ordenEstadosProyecto: EstadoProyecto[] = [
+  "En curso",
+  "En riesgo",
+  "Fuera de control",
+  "En pausa",
+  "Cancelado",
+];
+
 export function contarPorSalud(
   proyectos: Proyecto[],
-): Array<{ estadoSalud: EstadoSalud; cantidad: number }> {
+): Array<{ estadoSalud: EstadoProyecto; cantidad: number }> {
   const elegibles = proyectos.filter(
     (proyecto) =>
       proyecto.estado !== "En pausa" && proyecto.estado !== "Cancelado",
@@ -252,8 +247,15 @@ export function contarPorSalud(
 
   return ordenSalud.map((estadoSalud) => ({
     estadoSalud,
-    cantidad: elegibles.filter(
-      (proyecto) => proyecto.estadoSalud === estadoSalud,
-    ).length,
+    cantidad: elegibles.filter((proyecto) => proyecto.estado === estadoSalud)
+      .length,
   }));
 }
+
+export const ordenObjetivosEstrategicos: ObjetivoEstrategico[] = [
+  "Fiabilidad operativa",
+  "Energía y coste",
+  "Calidad y seguridad alimentaria",
+  "Backbone digital",
+  "Cumplimiento normativo",
+];

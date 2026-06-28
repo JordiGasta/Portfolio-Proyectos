@@ -7,11 +7,6 @@ import {
 } from "@/lib/proyectos/calculos";
 import { formatearEuros, formatearFecha } from "@/lib/format/formato";
 
-/**
- * Genera y descarga un documento .docx con el paquete de revisión de
- * gate de un proyecto. Se genera enteramente en el navegador, en el
- * momento de la descarga; no se guarda en ningún sitio.
- */
 export async function generarGateReviewDocx(proyecto: Proyecto): Promise<void> {
   const {
     Document,
@@ -52,23 +47,18 @@ export async function generarGateReviewDocx(proyecto: Proyecto): Promise<void> {
       filaDatos("Propietario", proyecto.propietario || "—"),
       filaDatos("Departamento", proyecto.departamento),
       filaDatos("Categoría estratégica", proyecto.categoria),
+      filaDatos("Objetivo estratégico", proyecto.objetivoEstrategico),
       filaDatos("Fase actual", proyecto.fase),
       filaDatos("Rigurosidad", proyecto.rigurosidad),
-      filaDatos("Estado de salud", proyecto.estadoSalud),
+      filaDatos("Estado", proyecto.estado),
     ],
   });
 
   const tablaEconomica = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
-      filaDatos(
-        "Presupuesto aprobado",
-        formatearEuros(proyecto.presupuestoAprobado),
-      ),
-      filaDatos(
-        "Importe comprometido",
-        formatearEuros(proyecto.importeComprometido),
-      ),
+      filaDatos("Presupuesto aprobado", formatearEuros(proyecto.presupuestoAprobado)),
+      filaDatos("Importe comprometido", formatearEuros(proyecto.importeComprometido)),
       filaDatos("Actuals (gastado)", formatearEuros(proyecto.importeGastado)),
       filaDatos("ETC", formatearEuros(proyecto.etc)),
       filaDatos("EAC", formatearEuros(eac)),
@@ -130,59 +120,23 @@ export async function generarGateReviewDocx(proyecto: Proyecto): Promise<void> {
     sections: [
       {
         children: [
-          new Paragraph({
-            text: "Paquete de revisión de gate",
-            heading: HeadingLevel.TITLE,
-          }),
-          new Paragraph({
-            text: `${proyecto.codigo} — ${proyecto.nombre}`,
-            heading: HeadingLevel.HEADING_1,
-          }),
+          new Paragraph({ text: "Paquete de revisión de gate", heading: HeadingLevel.TITLE }),
+          new Paragraph({ text: `${proyecto.codigo} — ${proyecto.nombre}`, heading: HeadingLevel.HEADING_1 }),
           new Paragraph({
             text: `Generado el ${formatearFecha(new Date().toISOString().slice(0, 10))}`,
             alignment: AlignmentType.RIGHT,
           }),
-
-          new Paragraph({
-            text: "Datos generales",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 300 },
-          }),
+          new Paragraph({ text: "Datos generales", heading: HeadingLevel.HEADING_2, spacing: { before: 300 } }),
           tablaDatosGenerales,
-
-          new Paragraph({
-            text: "Seguimiento económico",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 300 },
-          }),
+          new Paragraph({ text: "Seguimiento económico", heading: HeadingLevel.HEADING_2, spacing: { before: 300 } }),
           tablaEconomica,
-
-          new Paragraph({
-            text: "Progresión de gates",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 300 },
-          }),
+          new Paragraph({ text: "Progresión de gates", heading: HeadingLevel.HEADING_2, spacing: { before: 300 } }),
           new Paragraph({ text: textoProgresion }),
-
-          new Paragraph({
-            text: "Desglose de costes por fase",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 300 },
-          }),
+          new Paragraph({ text: "Desglose de costes por fase", heading: HeadingLevel.HEADING_2, spacing: { before: 300 } }),
           tablaFases,
-
-          new Paragraph({
-            text: "Descripción",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 300 },
-          }),
+          new Paragraph({ text: "Descripción", heading: HeadingLevel.HEADING_2, spacing: { before: 300 } }),
           new Paragraph({ text: proyecto.descripcion }),
-
-          new Paragraph({
-            text: "Observaciones",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 300 },
-          }),
+          new Paragraph({ text: "Observaciones", heading: HeadingLevel.HEADING_2, spacing: { before: 300 } }),
           new Paragraph({ text: proyecto.observaciones || "Sin observaciones." }),
         ],
       },

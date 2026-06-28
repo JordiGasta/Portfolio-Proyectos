@@ -2,15 +2,15 @@
 
 import type {
   CategoriaProyecto,
-  EstadoSalud,
+  EstadoProyecto,
   FaseProyecto,
 } from "@/types/proyecto";
-import { ordenCategorias, ordenFases, ordenSalud } from "@/lib/proyectos/calculos";
+import { ordenCategorias, ordenEstadosProyecto, ordenFases } from "@/lib/proyectos/calculos";
 
 export interface FiltrosProyectosValor {
   fase: FaseProyecto | "Todas";
   categoria: CategoriaProyecto | "Todas";
-  estadoSalud: EstadoSalud | "Todos";
+  estado: EstadoProyecto | "Todos";
 }
 
 interface FiltrosProyectosProps {
@@ -25,14 +25,8 @@ export default function FiltrosProyectos({
   return (
     <div className="grid gap-4 border-b border-slate-200 bg-slate-50 p-5 sm:grid-cols-3">
       <div>
-        <label
-          htmlFor="filtro-fase"
-          className="block text-xs font-medium text-slate-500"
-        >
-          Fase
-        </label>
+        <label className="block text-xs font-medium text-slate-500">Fase</label>
         <select
-          id="filtro-fase"
           value={valor.fase}
           onChange={(evento) =>
             onCambiar({
@@ -52,20 +46,13 @@ export default function FiltrosProyectos({
       </div>
 
       <div>
-        <label
-          htmlFor="filtro-categoria"
-          className="block text-xs font-medium text-slate-500"
-        >
-          Tipo
-        </label>
+        <label className="block text-xs font-medium text-slate-500">Tipo</label>
         <select
-          id="filtro-categoria"
           value={valor.categoria}
           onChange={(evento) =>
             onCambiar({
               ...valor,
-              categoria: evento.target
-                .value as FiltrosProyectosValor["categoria"],
+              categoria: evento.target.value as FiltrosProyectosValor["categoria"],
             })
           }
           className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none"
@@ -80,26 +67,19 @@ export default function FiltrosProyectos({
       </div>
 
       <div>
-        <label
-          htmlFor="filtro-salud"
-          className="block text-xs font-medium text-slate-500"
-        >
-          Estado
-        </label>
+        <label className="block text-xs font-medium text-slate-500">Estado</label>
         <select
-          id="filtro-salud"
-          value={valor.estadoSalud}
+          value={valor.estado}
           onChange={(evento) =>
             onCambiar({
               ...valor,
-              estadoSalud: evento.target
-                .value as FiltrosProyectosValor["estadoSalud"],
+              estado: evento.target.value as FiltrosProyectosValor["estado"],
             })
           }
           className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none"
         >
           <option value="Todos">Todos</option>
-          {ordenSalud.map((estado) => (
+          {ordenEstadosProyecto.map((estado) => (
             <option key={estado} value={estado}>
               {estado}
             </option>

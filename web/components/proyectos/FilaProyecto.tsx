@@ -32,10 +32,7 @@ export default function FilaProyecto({
       onClick={() => onSeleccionar(proyecto)}
       className="cursor-pointer hover:bg-slate-50"
     >
-      <td
-        className="max-w-[220px] truncate px-5 py-4 font-medium"
-        title={proyecto.nombre}
-      >
+      <td className="max-w-[220px] truncate px-5 py-4 font-medium" title={proyecto.nombre}>
         {proyecto.nombre}
       </td>
       <td className="px-5 py-4">
@@ -45,7 +42,7 @@ export default function FilaProyecto({
         <FaseBadge fase={proyecto.fase} />
       </td>
       <td className="px-5 py-4">
-        <EstadoSaludDot estadoSalud={proyecto.estadoSalud} />
+        <EstadoSaludDot estado={proyecto.estado} />
       </td>
       <td
         className={`px-5 py-4 text-sm ${
@@ -53,9 +50,7 @@ export default function FilaProyecto({
         }`}
       >
         {proximoGate ?? "—"}
-        {proyecto.fechaProximoGate
-          ? ` · ${formatearFecha(proyecto.fechaProximoGate)}`
-          : ""}
+        {proyecto.fechaProximoGate ? ` · ${formatearFecha(proyecto.fechaProximoGate)}` : ""}
       </td>
       <td className="px-5 py-4">{formatearEuros(proyecto.presupuestoAprobado)}</td>
       <td className="px-5 py-4">{formatearEuros(proyecto.importeGastado)}</td>

@@ -8,23 +8,15 @@ interface TablaProyectosActivosProps {
   proyectos: Proyecto[];
 }
 
-export default function TablaProyectosActivos({
-  proyectos,
-}: TablaProyectosActivosProps) {
+export default function TablaProyectosActivos({ proyectos }: TablaProyectosActivosProps) {
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-200 p-5">
-        <h3 className="text-lg font-semibold text-slate-900">
-          Proyectos activos
-        </h3>
-        <Link
-          href="/proyectos"
-          className="text-sm font-medium text-slate-600 hover:text-slate-900"
-        >
+        <h3 className="text-lg font-semibold text-slate-900">Proyectos activos</h3>
+        <Link href="/proyectos" className="text-sm font-medium text-slate-600 hover:text-slate-900">
           Ver todos →
         </Link>
       </div>
-
       <div className="overflow-x-auto">
         <table className="w-full min-w-[700px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-600">
@@ -40,42 +32,30 @@ export default function TablaProyectosActivos({
             {proyectos.map((proyecto) => (
               <tr key={proyecto.id} className="cursor-pointer hover:bg-slate-50">
                 <td className="px-5 py-3">
-                  <Link
-                    href={`/proyectos/${proyecto.id}`}
-                    className="block font-medium text-slate-900"
-                  >
+                  <Link href={`/proyectos/${proyecto.id}`} className="block font-medium text-slate-900">
                     {proyecto.nombre}
                   </Link>
                 </td>
                 <td className="px-5 py-3">
-                  <Link href={`/proyectos/${proyecto.id}`} className="block">
-                    {proyecto.fase}
-                  </Link>
+                  <Link href={`/proyectos/${proyecto.id}`} className="block">{proyecto.fase}</Link>
                 </td>
                 <td className="px-5 py-3">
                   <Link href={`/proyectos/${proyecto.id}`} className="block">
-                    <EstadoSaludDot estadoSalud={proyecto.estadoSalud} />
+                    <EstadoSaludDot estado={proyecto.estado} />
                   </Link>
                 </td>
                 <td className="px-5 py-3">
-                  <Link href={`/proyectos/${proyecto.id}`} className="block">
-                    {formatearEuros(proyecto.presupuestoAprobado)}
-                  </Link>
+                  <Link href={`/proyectos/${proyecto.id}`} className="block">{formatearEuros(proyecto.presupuestoAprobado)}</Link>
                 </td>
                 <td className="px-5 py-3">
-                  <Link href={`/proyectos/${proyecto.id}`} className="block">
-                    {formatearEuros(calcularEAC(proyecto))}
-                  </Link>
+                  <Link href={`/proyectos/${proyecto.id}`} className="block">{formatearEuros(calcularEAC(proyecto))}</Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
-      {proyectos.length === 0 && (
-        <p className="p-5 text-sm text-slate-500">No hay proyectos activos.</p>
-      )}
+      {proyectos.length === 0 && <p className="p-5 text-sm text-slate-500">No hay proyectos activos.</p>}
     </section>
   );
 }

@@ -9,9 +9,9 @@ export function filtrarProyectos(
     const coincideFase = filtros.fase === "Todas" || proyecto.fase === filtros.fase;
     const coincideCategoria =
       filtros.categoria === "Todas" || proyecto.categoria === filtros.categoria;
-    const coincideSalud =
-      filtros.estadoSalud === "Todos" || proyecto.estadoSalud === filtros.estadoSalud;
+    const coincideEstado =
+      filtros.estado === "Todos" || proyecto.estado === filtros.estado;
 
-    return coincideFase && coincideCategoria && coincideSalud;
+    return coincideFase && coincideCategoria && coincideEstado;
   });
 }
