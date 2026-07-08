@@ -1,8 +1,7 @@
 "use client";
 
 import Sidebar from "@/components/layout/Sidebar";
-import DemandaChart from "@/components/capex/DemandaChart";
-import FaseSpendTable from "@/components/capex/FaseSpendTable";
+import DemandaSemestralChart from "@/components/capex/DemandaSemestralChart";
 import { useProyectos } from "@/lib/proyectos/ProyectosContext";
 
 export default function PaginaDemandaCapex() {
@@ -20,15 +19,12 @@ export default function PaginaDemandaCapex() {
             </p>
             <h2 className="mt-2 text-3xl font-bold">Demanda CAPEX</h2>
             <p className="mt-2 text-slate-600">
-              Demanda de inversión trimestral frente al techo
-              presupuestario anual.
+              Presupuesto aprobado y gasto acumulado por semestre, para el
+              año actual y el siguiente.
             </p>
           </header>
 
-          <div className="space-y-6">
-            <DemandaChart proyectos={proyectos} />
-            <FaseSpendTable proyectos={proyectos} />
-          </div>
+          <DemandaSemestralChart proyectos={proyectos} />
         </section>
       </div>
     </main>
