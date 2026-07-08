@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -12,6 +13,7 @@ import { proyectos as proyectosIniciales } from "@/lib/data/proyectos";
 
 interface ProyectosContextValor {
   proyectos: Proyecto[];
+  cargando: boolean;
   agregarProyecto: (proyecto: Proyecto) => void;
   actualizarProyecto: (proyecto: Proyecto) => void;
   ultimaSincronizacion: Date | null;
@@ -22,31 +24,81 @@ interface ProyectosContextValor {
 const ProyectosContext = createContext<ProyectosContextValor | null>(null);
 
 /**
- * Almacén en memoria de los proyectos del portfolio, compartido por
- * toda la aplicación durante la sesión del navegador. No hay base de
- * datos: al recargar la página se vuelve a los datos ficticios
- * iniciales.
+ * Almacén de proyectos del portfolio, compartido por toda la
+ * aplicación durante la sesión del navegador.
  *
- * sincronizarBC simula el botón "Sync BC" del documento de
- * requisitos: no hay conexión real a Business Central, solo se
- * simula un pequeño retraso y un ajuste ficticio de los importes
- * gastados de los proyectos vinculados a un Job de BC
- * (numeroJobBC distinto de null).
+ * Al cargar la app, pide los proyectos a la ruta de API
+ * "/api/proyectos" en lugar de leer directamente el array importado.
+ * Esa ruta decide, en el servidor, si devuelve datos de SharePoint
+ * (cuando esté configurado) o los datos ficticios (mientras no lo
+ * esté) — el contexto no necesita saber cuál de los dos está usando.
+ *
+ * Si la petición a la API fallara por cualquier motivo, se usan los
+ * datos ficticios locales como red de seguridad, para que la
+ * aplicación nunca se quede sin datos que mostrar.
  */
 export function ProyectosProvider({ children }: { children: ReactNode }) {
   const [proyectos, setProyectos] = useState<Proyecto[]>(proyectosIniciales);
+  const [cargando, setCargando] = useState(true);
   const [ultimaSincronizacion, setUltimaSincronizacion] =
     useState<Date | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
 
+  useEffect(() => {
+    let activo = true;
+
+    async function cargarProyectos() {
+      try {
+        const respuesta = await fetch("/api/proyectos");
+        const datos = await respuesta.json();
+
+        if (activo && Array.isArray(datos.proyectos)) {
+          setProyectos(datos.proyectos);
+        }
+      } catch {
+        // Si falla la petición, nos quedamos con los datos ficticios
+        // locales con los que ya se inicializó el estado.
+      } finally {
+        if (activo) {
+          setCargando(false);
+        }
+      }
+    }
+
+    cargarProyectos();
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
   const agregarProyecto = (proyecto: Proyecto) => {
     setProyectos((actuales) => [...actuales, proyecto]);
+
+    fetch("/api/proyectos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(proyecto),
+    }).catch(() => {
+      // El proyecto ya está reflejado en el estado local aunque la
+      // petición al servidor falle; se mantiene la experiencia
+      // previa de "todo en memoria" como red de seguridad.
+    });
   };
 
   const actualizarProyecto = (proyecto: Proyecto) => {
     setProyectos((actuales) =>
       actuales.map((item) => (item.id === proyecto.id ? proyecto : item)),
     );
+
+    fetch(`/api/proyectos/${proyecto.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(proyecto),
+    }).catch(() => {
+      // Igual que en agregarProyecto: el estado local ya refleja el
+      // cambio aunque la petición al servidor falle.
+    });
   };
 
   const sincronizarBC = async () => {
@@ -78,13 +130,14 @@ export function ProyectosProvider({ children }: { children: ReactNode }) {
   const valor = useMemo(
     () => ({
       proyectos,
+      cargando,
       agregarProyecto,
       actualizarProyecto,
       ultimaSincronizacion,
       sincronizando,
       sincronizarBC,
     }),
-    [proyectos, ultimaSincronizacion, sincronizando],
+    [proyectos, cargando, ultimaSincronizacion, sincronizando],
   );
 
   return (

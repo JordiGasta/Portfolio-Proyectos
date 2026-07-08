@@ -1,32 +1,21 @@
 import { NextResponse } from "next/server";
-import { proyectos as proyectosFicticios } from "@/lib/data/proyectos";
+import type { Proyecto } from "@/types/proyecto";
+import {
+  leerProyectosLocales,
+  guardarProyectosLocales,
+} from "@/lib/proyectos/almacenLocal";
 import {
   obtenerConfiguracionSharePoint,
   sharePointEstaConfigurado,
 } from "@/lib/sharepoint/configuracion";
 import { llamarGraph } from "@/lib/sharepoint/graphClient";
 
-/**
- * Ruta de API que devuelve la lista de proyectos.
- *
- * Si SharePoint está configurado (variables de entorno presentes),
- * consulta la lista real vía Microsoft Graph. Si no, devuelve los
- * datos ficticios, para que la aplicación siga funcionando mientras
- * se completa la configuración de credenciales y permisos.
- *
- * NOTA: el mapeo de los campos reales de SharePoint al modelo de la
- * aplicación se implementará en el incremento de migración de datos;
- * por ahora, si SharePoint está configurado, esta ruta solo confirma
- * que la conexión funciona devolviendo el número de elementos.
- */
 export async function GET() {
   const configurado = sharePointEstaConfigurado();
 
   if (!configurado) {
-    return NextResponse.json({
-      origen: "ficticio",
-      proyectos: proyectosFicticios,
-    });
+    const proyectos = await leerProyectosLocales();
+    return NextResponse.json({ origen: "ficticio", proyectos });
   }
 
   try {
@@ -35,22 +24,33 @@ export async function GET() {
       `/sites/${config!.siteId}/lists/${config!.listId}/items?expand=fields`,
     )) as { value: unknown[] };
 
+    const proyectos = await leerProyectosLocales();
+
     return NextResponse.json({
       origen: "sharepoint",
       totalElementosSharePoint: datos.value.length,
       avisoMapeo:
-        "Conexión correcta. El mapeo de campos de SharePoint al modelo de la aplicación se implementará en el siguiente incremento.",
-      proyectos: proyectosFicticios,
+        "Conexión correcta. El mapeo de campos de SharePoint al modelo de la aplicación todavía no está implementado; se sigue devolviendo el listado local.",
+      proyectos,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        origen: "error",
-        mensaje:
-          error instanceof Error ? error.message : "Error desconocido al conectar con SharePoint.",
-        proyectos: proyectosFicticios,
-      },
-      { status: 200 },
-    );
+    const proyectos = await leerProyectosLocales();
+    return NextResponse.json({
+      origen: "error",
+      mensaje:
+        error instanceof Error
+          ? error.message
+          : "Error desconocido al conectar con SharePoint.",
+      proyectos,
+    });
   }
+}
+
+export async function POST(request: Request) {
+  const proyecto = (await request.json()) as Proyecto;
+  const proyectos = await leerProyectosLocales();
+  const actualizados = [...proyectos, proyecto];
+  await guardarProyectosLocales(actualizados);
+
+  return NextResponse.json({ origen: "ficticio", proyecto });
 }
