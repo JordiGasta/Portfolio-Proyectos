@@ -96,6 +96,7 @@ function crearProyectoVacio(proyectosExistentes: Proyecto[]): Proyecto {
     nivelRiesgo: "Medio",
     horizonteTemporal: "Medio plazo",
     detallePorFase: {},
+    gastoMensual2026: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   };
 }
 

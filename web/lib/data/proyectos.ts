@@ -1,161 +1,166 @@
 import type { Proyecto } from "@/types/proyecto";
 
+function meses(...v: number[]): number[] {
+  const m = [...v];
+  while (m.length < 12) m.push(0);
+  return m.slice(0, 12);
+}
+
+// Reparto de coste por fase (mismos pesos que la plantilla Excel) y
+// fechas de fin de cada fase, para tener histórico real por fases.
+function fasesFase4(total: number) {
+  const pesos = [0.04, 0.08, 0.1, 0.13, 0.15, 0.5, 0];
+  const fines = [
+    "2025-01-31", "2025-03-31", "2025-06-30", "2025-09-30",
+    "2025-12-15", "2026-06-30", "",
+  ];
+  return construirFases(total, pesos, fines);
+}
+
+function fasesFase3(total: number) {
+  const pesos = [0.05, 0.1, 0.15, 0.2, 0.5, 0, 0];
+  const fines = [
+    "2025-02-28", "2025-05-31", "2025-08-31", "2025-11-30",
+    "2026-03-15", "", "",
+  ];
+  return construirFases(total, pesos, fines);
+}
+
+const NOMBRES_FASE = [
+  "Fase 0 — Fase previa",
+  "Fase I — Inicio / Project Charter",
+  "Fase IIA — Análisis de escenarios",
+  "Fase IIB — Ingeniería básica solución escogida",
+  "Fase III — Ingeniería de detalle",
+  "Fase IV — Ejecución",
+  "Fase V — Cierre",
+] as const;
+
+function construirFases(
+  total: number,
+  pesos: number[],
+  fines: string[],
+): Proyecto["detallePorFase"] {
+  const costes = pesos.map((p) => Math.round(total * p));
+  // Ajuste para que la suma cuadre exactamente con el total.
+  const idxUlt = costes.reduce((ult, c, i) => (c > 0 ? i : ult), 0);
+  costes[idxUlt] += total - costes.reduce((t, c) => t + c, 0);
+
+  const detalle: Proyecto["detallePorFase"] = {};
+  NOMBRES_FASE.forEach((nombre, i) => {
+    if (costes[i] > 0 || fines[i]) {
+      detalle[nombre] = {
+        coste: costes[i],
+        fechaFin: fines[i] || undefined,
+      };
+    }
+  });
+  return detalle;
+}
+
+function base(
+  id: string,
+  codigo: string,
+  nombre: string,
+  categoriaExcel: string,
+  anio: number,
+  presupuesto: number,
+  gasto: number[],
+  faseCuatro: boolean,
+  bucket: Proyecto["objetivoEstrategico"],
+  gate: Proyecto["gateActual"],
+): Proyecto {
+  const gastado = gasto.reduce((t, v) => t + v, 0);
+  const categoria: Proyecto["categoria"] =
+    /compliance|legal|environment|port|safety/i.test(categoriaExcel)
+      ? "Obligatorio"
+      : /growth|new/i.test(categoriaExcel)
+        ? "Creación de valor"
+        : "Protección de valor";
+
+  return {
+    id,
+    codigo,
+    nombre,
+    descripcion: nombre,
+    responsable: "Por asignar",
+    departamento: "Mantenimiento",
+    tipo: "CAPEX",
+    fase: faseCuatro
+      ? "Fase IV — Ejecución"
+      : "Fase III — Ingeniería de detalle",
+    rigurosidad: "R2",
+    presupuestoAprobado: presupuesto,
+    importeComprometido: Math.round(presupuesto * 0.9),
+    importeGastado: gastado,
+    fechaInicio: `${anio}-01-15`,
+    fechaFinPrevista: "2026-12-15",
+    avance:
+      presupuesto > 0 ? Math.min(100, Math.round((gastado / presupuesto) * 100)) : 0,
+    prioridad: "Media",
+    observaciones: "",
+    categoria,
+    estado: "En curso",
+    objetivoEstrategico: bucket,
+    propietario: "Jordi Gasta",
+    sponsor: "Dirección de Planta",
+    gateActual: gate,
+    gateStatus: faseCuatro ? [2, 2, 2, 2, 2, 1, 0] : [2, 2, 2, 1, 0, 0, 0],
+    fechaProximoGate: faseCuatro ? "2026-11-30" : "2026-09-30",
+    fechaUltimoGate: "2026-03-15",
+    etc: Math.max(0, presupuesto - gastado),
+    numeroJobBC: `BC-${codigo}`,
+    exposicionRiesgo:
+      categoria === "Obligatorio" ? Math.round(presupuesto * 0.5) : undefined,
+    beneficioEsperado:
+      categoria === "Creación de valor" ? Math.round(presupuesto * 0.3) : undefined,
+    nivelRiesgo: "Medio",
+    horizonteTemporal: "Corto plazo",
+    detallePorFase: faseCuatro
+      ? fasesFase4(gastado)
+      : fasesFase3(gastado),
+    gastoMensual2026: gasto,
+  };
+}
+
 export const proyectos: Proyecto[] = [
-  {
-    id: "1", codigo: "CAPEX-2026-001", nombre: "Renovación de la línea de envasado",
-    descripcion: "Sustitución de la línea de envasado actual por un equipo de mayor capacidad y menor consumo energético.",
-    responsable: "Ana Martínez", departamento: "Producción", tipo: "CAPEX",
-    fase: "Fase III — Ingeniería de detalle", rigurosidad: "R2",
-    presupuestoAprobado: 450000, importeComprometido: 410000, importeGastado: 275000,
-    fechaInicio: "2026-01-15", fechaFinPrevista: "2026-09-30", avance: 62, prioridad: "Alta",
-    observaciones: "Pendiente de recepción de componentes eléctricos importados. Riesgo de retraso de dos semanas.",
-    categoria: "Creación de valor", estado: "En riesgo", objetivoEstrategico: "Fiabilidad operativa",
-    propietario: "Jordi Gasta", sponsor: "Dirección de Operaciones",
-    gateActual: "G3", gateStatus: [2, 2, 2, 2, 1, 0, 0],
-    fechaProximoGate: "2026-07-15", fechaUltimoGate: "2026-04-01", etc: 175000,
-    numeroJobBC: "BC-2026-0142", beneficioEsperado: 120000, nivelRiesgo: "Medio", horizonteTemporal: "Medio plazo",
-    detallePorFase: {
-      "Fase 0 — Fase previa": { coste: 5000, fechaInicio: "2025-11-01", fechaFin: "2025-11-30" },
-      "Fase I — Inicio / Project Charter": { coste: 8000, fechaInicio: "2025-12-01", fechaFin: "2025-12-20" },
-      "Fase IIA — Análisis de escenarios": { coste: 15000, fechaInicio: "2026-01-01", fechaFin: "2026-01-31" },
-      "Fase IIB — Ingeniería básica solución escogida": { coste: 32000, fechaInicio: "2026-02-01", fechaFin: "2026-03-15" },
-      "Fase III — Ingeniería de detalle": { coste: 60000, fechaInicio: "2026-03-16", fechaFin: "2026-05-31" },
-      "Fase IV — Ejecución": { coste: 300000, fechaInicio: "2026-06-01", fechaFin: "2026-09-15" },
-      "Fase V — Cierre": { coste: 30000, fechaInicio: "2026-09-16", fechaFin: "2026-09-30" },
-    },
-  },
-  {
-    id: "2", codigo: "CAPEX-2026-002", nombre: "Nueva instalación de refrigeración",
-    descripcion: "Instalación de un sistema de refrigeración industrial para la nueva cámara de producto terminado.",
-    responsable: "Carlos López", departamento: "Ingeniería", tipo: "CAPEX",
-    fase: "Fase IIA — Análisis de escenarios", rigurosidad: "R1",
-    presupuestoAprobado: 320000, importeComprometido: 95000, importeGastado: 48000,
-    fechaInicio: "2026-02-01", fechaFinPrevista: "2026-11-15", avance: 25, prioridad: "Alta",
-    observaciones: "En fase de diseño de ingeniería de detalle.",
-    categoria: "Creación de valor", estado: "En curso", objetivoEstrategico: "Energía y coste",
-    propietario: "Carlos López", sponsor: "Dirección de Ingeniería",
-    gateActual: "G2A", gateStatus: [2, 2, 1, 0, 0, 0, 0],
-    fechaProximoGate: "2026-08-01", fechaUltimoGate: "2026-05-10", etc: 250000,
-    numeroJobBC: "BC-2026-0158", beneficioEsperado: 90000, nivelRiesgo: "Bajo", horizonteTemporal: "Corto plazo",
-    detallePorFase: {
-      "Fase 0 — Fase previa": { coste: 4000, fechaInicio: "2025-12-01", fechaFin: "2025-12-15" },
-      "Fase I — Inicio / Project Charter": { coste: 6000, fechaInicio: "2026-01-01", fechaFin: "2026-01-20" },
-      "Fase IIA — Análisis de escenarios": { coste: 20000, fechaInicio: "2026-02-01", fechaFin: "2026-04-30" },
-      "Fase IIB — Ingeniería básica solución escogida": { coste: 35000, fechaInicio: "2026-05-01", fechaFin: "2026-06-30" },
-      "Fase III — Ingeniería de detalle": { coste: 45000, fechaInicio: "2026-07-01", fechaFin: "2026-08-15" },
-      "Fase IV — Ejecución": { coste: 190000, fechaInicio: "2026-08-16", fechaFin: "2026-10-31" },
-      "Fase V — Cierre": { coste: 20000, fechaInicio: "2026-11-01", fechaFin: "2026-11-15" },
-    },
-  },
-  {
-    id: "3", codigo: "CAPEX-2026-003", nombre: "Mejora del sistema de vapor",
-    descripcion: "Optimización de la red de distribución de vapor para reducir pérdidas energéticas en planta.",
-    responsable: "Laura Gómez", departamento: "Mantenimiento", tipo: "Mejora continua",
-    fase: "Fase I — Inicio / Project Charter", rigurosidad: "R1",
-    presupuestoAprobado: 180000, importeComprometido: 0, importeGastado: 12000,
-    fechaInicio: "2026-03-01", fechaFinPrevista: "2026-12-20", avance: 10, prioridad: "Media",
-    observaciones: "Pendiente de aprobación del comité de inversiones.",
-    categoria: "Protección de valor", estado: "En curso", objetivoEstrategico: "Energía y coste",
-    propietario: "Laura Gómez", sponsor: "Dirección de Mantenimiento",
-    gateActual: "G1", gateStatus: [2, 1, 0, 0, 0, 0, 0],
-    fechaProximoGate: "2026-08-15", fechaUltimoGate: "2026-03-20", etc: 168000,
-    numeroJobBC: null, exposicionRiesgo: 45000, nivelRiesgo: "Bajo", horizonteTemporal: "Medio plazo",
-    detallePorFase: {
-      "Fase 0 — Fase previa": { coste: 3000, fechaInicio: "2026-02-01", fechaFin: "2026-02-20" },
-      "Fase I — Inicio / Project Charter": { coste: 5000, fechaInicio: "2026-03-01", fechaFin: "2026-04-15" },
-      "Fase IIA — Análisis de escenarios": { coste: 12000, fechaInicio: "2026-04-16", fechaFin: "2026-06-15" },
-      "Fase IIB — Ingeniería básica solución escogida": { coste: 20000, fechaInicio: "2026-06-16", fechaFin: "2026-08-15" },
-      "Fase III — Ingeniería de detalle": { coste: 25000, fechaInicio: "2026-08-16", fechaFin: "2026-09-30" },
-      "Fase IV — Ejecución": { coste: 100000, fechaInicio: "2026-10-01", fechaFin: "2026-12-05" },
-      "Fase V — Cierre": { coste: 15000, fechaInicio: "2026-12-06", fechaFin: "2026-12-20" },
-    },
-  },
-  {
-    id: "4", codigo: "NORM-2025-014", nombre: "Adecuación normativa de almacén de químicos",
-    descripcion: "Adaptación del almacén de productos químicos a la normativa vigente de seguridad e higiene industrial.",
-    responsable: "Marc Ferrer", departamento: "Medio Ambiente", tipo: "Normativo",
-    fase: "Fase IIB — Ingeniería básica solución escogida", rigurosidad: "R3",
-    presupuestoAprobado: 95000, importeComprometido: 60000, importeGastado: 60000,
-    fechaInicio: "2025-09-01", fechaFinPrevista: "2026-04-30", avance: 55, prioridad: "Alta",
-    observaciones: "Proyecto pausado a la espera de la resolución de un permiso administrativo.",
-    categoria: "Obligatorio", estado: "En pausa", objetivoEstrategico: "Cumplimiento normativo",
-    propietario: "Marc Ferrer", sponsor: "Dirección de Medio Ambiente",
-    gateActual: "G2B", gateStatus: [2, 2, 2, 1, 0, 0, 0],
-    fechaProximoGate: "2026-03-01", fechaUltimoGate: "2025-12-10", etc: 40000,
-    numeroJobBC: "BC-2025-0098", exposicionRiesgo: 80000, nivelRiesgo: "Alto", horizonteTemporal: "Corto plazo",
-    detallePorFase: {
-      "Fase 0 — Fase previa": { coste: 2000, fechaInicio: "2025-08-01", fechaFin: "2025-08-20" },
-      "Fase I — Inicio / Project Charter": { coste: 4000, fechaInicio: "2025-09-01", fechaFin: "2025-09-20" },
-      "Fase IIA — Análisis de escenarios": { coste: 9000, fechaInicio: "2025-09-21", fechaFin: "2025-11-10" },
-      "Fase IIB — Ingeniería básica solución escogida": { coste: 20000, fechaInicio: "2025-11-11", fechaFin: "2026-01-31" },
-      "Fase III — Ingeniería de detalle": { coste: 15000, fechaInicio: "2026-02-01", fechaFin: "2026-02-28" },
-      "Fase IV — Ejecución": { coste: 35000, fechaInicio: "2026-03-01", fechaFin: "2026-04-15" },
-      "Fase V — Cierre": { coste: 10000, fechaInicio: "2026-04-16", fechaFin: "2026-04-30" },
-    },
-  },
-  {
-    id: "5", codigo: "OPEX-2026-007", nombre: "Plan anual de mantenimiento predictivo",
-    descripcion: "Implantación de rutas de mantenimiento predictivo en los equipos críticos de planta.",
-    responsable: "Sara Navarro", departamento: "Mantenimiento", tipo: "OPEX",
-    fase: "Fase 0 — Fase previa", rigurosidad: "R1",
-    presupuestoAprobado: 60000, importeComprometido: 0, importeGastado: 0,
-    fechaInicio: "2026-05-01", fechaFinPrevista: "2027-04-30", avance: 0, prioridad: "Media",
-    observaciones: "Pendiente de presentación al comité de planta.",
-    categoria: "Protección de valor", estado: "En curso", objetivoEstrategico: "Fiabilidad operativa",
-    propietario: "Sara Navarro", sponsor: "Dirección de Mantenimiento",
-    gateActual: "G0", gateStatus: [1, 0, 0, 0, 0, 0, 0],
-    fechaProximoGate: "2026-06-15", etc: 60000,
-    numeroJobBC: null, exposicionRiesgo: 25000, nivelRiesgo: "Bajo", horizonteTemporal: "Largo plazo",
-    detallePorFase: {
-      "Fase 0 — Fase previa": { coste: 1500, fechaInicio: "2026-05-01", fechaFin: "2026-05-20" },
-      "Fase I — Inicio / Project Charter": { coste: 3000, fechaInicio: "2026-05-21", fechaFin: "2026-06-15" },
-      "Fase IIA — Análisis de escenarios": { coste: 5000, fechaInicio: "2026-06-16", fechaFin: "2026-08-15" },
-      "Fase IIB — Ingeniería básica solución escogida": { coste: 8000, fechaInicio: "2026-08-16", fechaFin: "2026-10-15" },
-      "Fase III — Ingeniería de detalle": { coste: 10000, fechaInicio: "2026-10-16", fechaFin: "2026-12-15" },
-      "Fase IV — Ejecución": { coste: 27000, fechaInicio: "2026-12-16", fechaFin: "2027-04-01" },
-      "Fase V — Cierre": { coste: 5500, fechaInicio: "2027-04-02", fechaFin: "2027-04-30" },
-    },
-  },
-  {
-    id: "6", codigo: "CAPEX-2025-018", nombre: "Ampliación de la nave de expediciones",
-    descripcion: "Ampliación de 600 m² de la nave de expediciones para aumentar la capacidad logística.",
-    responsable: "Carlos López", departamento: "Logística", tipo: "CAPEX",
-    fase: "Fase V — Cierre", rigurosidad: "R2",
-    presupuestoAprobado: 540000, importeComprometido: 538200, importeGastado: 538200,
-    fechaInicio: "2025-02-10", fechaFinPrevista: "2025-12-15", avance: 100, prioridad: "Baja",
-    observaciones: "Proyecto cerrado. Pendiente de auditoría final de costes.",
-    categoria: "Creación de valor", estado: "En curso", objetivoEstrategico: "Fiabilidad operativa",
-    propietario: "Carlos López", sponsor: "Dirección de Logística",
-    gateActual: "G5", gateStatus: [2, 2, 2, 2, 2, 2, 2],
-    fechaUltimoGate: "2025-12-10", etc: 0,
-    numeroJobBC: "BC-2025-0061", beneficioEsperado: 150000, nivelRiesgo: "Medio", horizonteTemporal: "Corto plazo",
-    detallePorFase: {
-      "Fase 0 — Fase previa": { coste: 5000, fechaInicio: "2024-11-01", fechaFin: "2024-11-20" },
-      "Fase I — Inicio / Project Charter": { coste: 9000, fechaInicio: "2024-12-01", fechaFin: "2024-12-20" },
-      "Fase IIA — Análisis de escenarios": { coste: 18000, fechaInicio: "2025-01-01", fechaFin: "2025-02-09" },
-      "Fase IIB — Ingeniería básica solución escogida": { coste: 30000, fechaInicio: "2025-02-10", fechaFin: "2025-04-15" },
-      "Fase III — Ingeniería de detalle": { coste: 48200, fechaInicio: "2025-04-16", fechaFin: "2025-06-30" },
-      "Fase IV — Ejecución": { coste: 410000, fechaInicio: "2025-07-01", fechaFin: "2025-11-30" },
-      "Fase V — Cierre": { coste: 20000, fechaInicio: "2025-12-01", fechaFin: "2025-12-15" },
-    },
-  },
-  {
-    id: "7", codigo: "CAPEX-2025-022", nombre: "Digitalización de cuadros eléctricos",
-    descripcion: "Sustitución de cuadros eléctricos analógicos por sistemas digitales con monitorización remota.",
-    responsable: "Ana Martínez", departamento: "Ingeniería", tipo: "CAPEX",
-    fase: "Fase I — Inicio / Project Charter", rigurosidad: "R1",
-    presupuestoAprobado: 75000, importeComprometido: 0, importeGastado: 4500,
-    fechaInicio: "2025-06-01", fechaFinPrevista: "2026-01-31", avance: 5, prioridad: "Baja",
-    observaciones: "Proyecto cancelado por cambio de prioridades del departamento.",
-    categoria: "Protección de valor", estado: "Cancelado", objetivoEstrategico: "Backbone digital",
-    propietario: "Ana Martínez", sponsor: "Dirección de Ingeniería",
-    gateActual: "G1", gateStatus: [2, 1, 0, 0, 0, 0, 0],
-    fechaUltimoGate: "2025-07-01", etc: 0,
-    numeroJobBC: null, exposicionRiesgo: 10000, nivelRiesgo: "Alto", horizonteTemporal: "Corto plazo",
-    motivoCancelacion: "Cancelado en revisión de gate G1 por cambio de prioridades del departamento de Ingeniería. Coste incurrido: 4.500 €. Validado por Dirección de Planta y Finanzas.",
-    detallePorFase: {
-      "Fase 0 — Fase previa": { coste: 1000, fechaInicio: "2025-05-01", fechaFin: "2025-05-20" },
-      "Fase I — Inicio / Project Charter": { coste: 3500, fechaInicio: "2025-06-01", fechaFin: "2025-07-01" },
-    },
-  },
+  base("1", "P009", "Buhler crane up to date", "Maintenance", 2024, 120000,
+    meses(8000, 9000, 10000, 12000, 11000, 9000, 7000, 6000, 5000, 4000, 0, 0),
+    true, "Fiabilidad operativa", "G3"),
+  base("2", "P010", "Fire Protection installation", "Compliance Insurance", 2024, 250000,
+    meses(15000, 18000, 20000, 22000, 20000, 18000, 16000, 14000, 12000, 10000, 8000, 6000),
+    true, "Cumplimiento normativo", "G3"),
+  base("3", "P012", "Improvement ventilation area of transformers", "Maintenance", 2024, 95000,
+    meses(4000, 5000, 6000, 7000, 6000, 5000, 4000, 3000, 2000, 0, 0, 0),
+    false, "Fiabilidad operativa", "G2B"),
+  base("4", "P015", "Extraction area containment", "Compliance Port", 2024, 180000,
+    meses(10000, 12000, 14000, 15000, 14000, 12000, 10000, 9000, 8000, 7000, 6000, 0),
+    true, "Cumplimiento normativo", "G3"),
+  base("5", "P018", "Slide gates 501", "Compliance Environment", 2025, 140000,
+    meses(6000, 8000, 10000, 11000, 10000, 9000, 8000, 7000, 6000, 5000, 4000, 0),
+    true, "Cumplimiento normativo", "G3"),
+  base("6", "P022", "Silo 3 Repair", "Maintenance", 2025, 210000,
+    meses(12000, 15000, 18000, 20000, 18000, 16000, 14000, 12000, 10000, 8000, 6000, 4000),
+    true, "Fiabilidad operativa", "G3"),
+  base("7", "P025", "Calentador de Hexano 930", "Maintenance", 2025, 88000,
+    meses(4000, 5000, 6000, 7000, 6000, 5000, 4000, 3000, 2000, 1000, 0, 0),
+    true, "Fiabilidad operativa", "G3"),
+  base("8", "P029", "Replacement VFD boiler's Fan", "Maintenance", 2025, 65000,
+    meses(3000, 4000, 5000, 6000, 5000, 4000, 3000, 2000, 1000, 0, 0, 0),
+    true, "Fiabilidad operativa", "G3"),
+  base("9", "P030", "Extraction control room", "Legal Compliance", 2025, 175000,
+    meses(9000, 11000, 13000, 15000, 14000, 12000, 11000, 10000, 9000, 8000, 7000, 6000),
+    true, "Cumplimiento normativo", "G3"),
+  base("10", "P034", "WESTFALIA pump bol reparation", "Maintenance", 2026, 72000,
+    meses(0, 0, 5000, 7000, 8000, 8000, 7000, 6000, 5000, 4000, 3000, 2000),
+    true, "Fiabilidad operativa", "G3"),
+  base("11", "P035", "Rotary dryer isolation", "Maintenance", 2026, 98000,
+    meses(0, 0, 6000, 8000, 10000, 10000, 9000, 8000, 7000, 6000, 5000, 4000),
+    true, "Fiabilidad operativa", "G3"),
+  base("12", "P036", "Dust collection from Torit Filters", "Environmental", 2026, 156000,
+    meses(0, 0, 0, 10000, 14000, 15000, 14000, 13000, 12000, 11000, 10000, 9000),
+    true, "Cumplimiento normativo", "G3"),
+  base("13", "P037", "Flakers roll replacement", "Maintenance", 2026, 54000,
+    meses(0, 0, 0, 5000, 6000, 7000, 6000, 5000, 4000, 3000, 2000, 0),
+    true, "Fiabilidad operativa", "G3"),
 ];

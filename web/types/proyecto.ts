@@ -93,4 +93,6 @@ export interface Proyecto {
   nivelRiesgo: NivelRiesgo;
   horizonteTemporal: HorizonteTemporal;
   detallePorFase: Partial<Record<FaseProyecto, DetalleFase>>;
+  /** Gasto real mes a mes de 2026 (12 valores: enero..diciembre). */
+  gastoMensual2026: number[];
 }
