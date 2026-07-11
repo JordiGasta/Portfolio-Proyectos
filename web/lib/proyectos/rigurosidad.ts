@@ -1,0 +1,61 @@
+import type { FaseProyecto, Rigurosidad } from "@/types/proyecto";
+import { ordenFases } from "@/lib/proyectos/calculos";
+
+export type AplicacionFase = "obligatoria" | "opcional" | "no-aplica";
+
+/**
+ * Aplicación de cada fase según la rigurosidad del proyecto, según el
+ * documento de especificaciones ("Aplicación de fases según
+ * rigurosidad del proyecto").
+ */
+const MATRIZ: Record<FaseProyecto, Record<Rigurosidad, AplicacionFase>> = {
+  "Fase 0 — Fase previa": {
+    R1: "no-aplica",
+    R2: "opcional",
+    R3: "obligatoria",
+  },
+  "Fase I — Inicio / Project Charter": {
+    R1: "obligatoria",
+    R2: "obligatoria",
+    R3: "obligatoria",
+  },
+  "Fase IIA — Análisis de escenarios": {
+    R1: "no-aplica",
+    R2: "opcional",
+    R3: "obligatoria",
+  },
+  "Fase IIB — Ingeniería básica solución escogida": {
+    R1: "no-aplica",
+    R2: "no-aplica",
+    R3: "obligatoria",
+  },
+  "Fase III — Ingeniería de detalle": {
+    R1: "no-aplica",
+    R2: "obligatoria",
+    R3: "obligatoria",
+  },
+  "Fase IV — Ejecución": {
+    R1: "obligatoria",
+    R2: "obligatoria",
+    R3: "obligatoria",
+  },
+  "Fase V — Cierre": {
+    R1: "no-aplica",
+    R2: "obligatoria",
+    R3: "obligatoria",
+  },
+};
+
+export function aplicacionDeFase(
+  fase: FaseProyecto,
+  rigurosidad: Rigurosidad,
+): AplicacionFase {
+  return MATRIZ[fase][rigurosidad];
+}
+
+/** Fases que aplican (obligatorias u opcionales) a una rigurosidad, en orden. */
+export function fasesAplicables(rigurosidad: Rigurosidad): FaseProyecto[] {
+  return ordenFases.filter(
+    (fase) => aplicacionDeFase(fase, rigurosidad) !== "no-aplica",
+  );
+}

@@ -5,6 +5,7 @@ import type { FormEvent, ReactNode } from "react";
 import type {
   CategoriaProyecto,
   Departamento,
+  DetalleFase,
   EstadoProyecto,
   FaseProyecto,
   Gate,
@@ -24,6 +25,7 @@ import {
   ordenGates,
   ordenObjetivosEstrategicos,
 } from "@/lib/proyectos/calculos";
+import { aplicacionDeFase, fasesAplicables } from "@/lib/proyectos/rigurosidad";
 import { generarIdentificadorProyecto } from "@/lib/proyectos/identificadores";
 import SelectorPersona from "@/components/proyectos/SelectorPersona";
 
@@ -69,7 +71,7 @@ function crearProyectoVacio(proyectosExistentes: Proyecto[]): Proyecto {
     responsable: "",
     departamento: "Producción",
     tipo: "CAPEX",
-    fase: "Fase 0 — Fase previa",
+    fase: "Fase IV — Ejecución",
     rigurosidad: "R1",
     presupuestoAprobado: 0,
     importeComprometido: 0,
@@ -124,6 +126,30 @@ export default function ProyectoFormModal({
     }));
   };
 
+  const actualizarDetalleFase = (
+    fase: FaseProyecto,
+    campo: keyof DetalleFase,
+    valor: string,
+  ) => {
+    setProyecto((actual) => {
+      const detalleActual = actual.detallePorFase[fase] ?? {};
+      const nuevoDetalle: DetalleFase = { ...detalleActual };
+
+      if (campo === "coste") {
+        nuevoDetalle.coste = valor === "" ? undefined : Number(valor);
+      } else {
+        nuevoDetalle[campo] = valor === "" ? undefined : valor;
+      }
+
+      return {
+        ...actual,
+        detallePorFase: { ...actual.detallePorFase, [fase]: nuevoDetalle },
+      };
+    });
+  };
+
+  const fasesMostradas = fasesAplicables(proyecto.rigurosidad);
+
   const manejarEnvio = (evento: FormEvent) => {
     evento.preventDefault();
 
@@ -139,6 +165,23 @@ export default function ProyectoFormModal({
 
     if (proyecto.estado === "Cancelado" && !proyecto.motivoCancelacion?.trim()) {
       setError("Indica el motivo de cancelación, obligatorio cuando el estado es Cancelado.");
+      return;
+    }
+
+    // Validación de fases obligatorias: el coste debe estar relleno.
+    const faseObligatoriaSinCoste = fasesMostradas.find((fase) => {
+      const aplicacion = aplicacionDeFase(fase, proyecto.rigurosidad);
+      const detalle = proyecto.detallePorFase[fase];
+      return (
+        aplicacion === "obligatoria" &&
+        (!detalle || detalle.coste === undefined || Number.isNaN(detalle.coste))
+      );
+    });
+
+    if (faseObligatoriaSinCoste) {
+      setError(
+        `Indica el coste de la fase obligatoria: ${faseObligatoriaSinCoste}.`,
+      );
       return;
     }
 
@@ -201,17 +244,22 @@ export default function ProyectoFormModal({
                   onChange={(e) => actualizarCampo("rigurosidad", e.target.value as Rigurosidad)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                 >
-                  {rigurosidades.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {rigurosidades.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                      {r === "R1" ? " — Proyecto simple" : r === "R2" ? " — Proyecto estándar" : " — Proyecto mayor"}
+                    </option>
+                  ))}
                 </select>
               </Campo>
 
-              <Campo etiqueta="Fase *">
+              <Campo etiqueta="Fase actual *">
                 <select
                   required value={proyecto.fase}
                   onChange={(e) => actualizarCampo("fase", e.target.value as FaseProyecto)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                 >
-                  {ordenFases.map((fase) => <option key={fase} value={fase}>{fase}</option>)}
+                  {fasesMostradas.map((fase) => <option key={fase} value={fase}>{fase}</option>)}
                 </select>
               </Campo>
 
@@ -238,6 +286,83 @@ export default function ProyectoFormModal({
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                 />
               </Campo>
+            </div>
+          </section>
+
+          {/* SECCIÓN DE FASES SEGÚN RIGUROSIDAD */}
+          <section>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Fases del proyecto ({proyecto.rigurosidad})
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Se muestran las fases que aplican a la rigurosidad seleccionada.
+              El coste de las fases obligatorias es necesario para guardar.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {fasesMostradas.map((fase) => {
+                const aplicacion = aplicacionDeFase(fase, proyecto.rigurosidad);
+                const detalle = proyecto.detallePorFase[fase] ?? {};
+                const esObligatoria = aplicacion === "obligatoria";
+
+                return (
+                  <div
+                    key={fase}
+                    className="rounded-lg border border-slate-200 p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-800">
+                        {fase}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          esObligatoria
+                            ? "bg-rose-100 text-rose-700"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {esObligatoria ? "Obligatoria" : "Opcional"}
+                      </span>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <Campo etiqueta={esObligatoria ? "Coste (€) *" : "Coste (€)"}>
+                        <input
+                          type="number"
+                          min={0}
+                          value={detalle.coste ?? ""}
+                          onChange={(e) =>
+                            actualizarDetalleFase(fase, "coste", e.target.value)
+                          }
+                          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                        />
+                      </Campo>
+
+                      <Campo etiqueta="Fecha inicio">
+                        <input
+                          type="date"
+                          value={detalle.fechaInicio ?? ""}
+                          onChange={(e) =>
+                            actualizarDetalleFase(fase, "fechaInicio", e.target.value)
+                          }
+                          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                        />
+                      </Campo>
+
+                      <Campo etiqueta="Fecha fin">
+                        <input
+                          type="date"
+                          value={detalle.fechaFin ?? ""}
+                          onChange={(e) =>
+                            actualizarDetalleFase(fase, "fechaFin", e.target.value)
+                          }
+                          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                        />
+                      </Campo>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -444,10 +569,6 @@ export default function ProyectoFormModal({
                 />
               </Campo>
             </div>
-
-            <p className="mt-4 text-xs text-slate-400">
-              El desglose de coste por fase no es editable todavía desde este formulario.
-            </p>
           </section>
         </div>
 
