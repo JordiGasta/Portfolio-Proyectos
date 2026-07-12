@@ -1,4 +1,4 @@
-import type { FaseProyecto, Rigurosidad } from "@/types/proyecto";
+import type { FaseProyecto, Gate, Rigurosidad } from "@/types/proyecto";
 import { ordenFases } from "@/lib/proyectos/calculos";
 
 export type AplicacionFase = "obligatoria" | "opcional" | "no-aplica";
@@ -58,4 +58,21 @@ export function fasesAplicables(rigurosidad: Rigurosidad): FaseProyecto[] {
   return ordenFases.filter(
     (fase) => aplicacionDeFase(fase, rigurosidad) !== "no-aplica",
   );
+}
+
+
+/** Correspondencia posicional entre cada fase y su gate. */
+const GATE_POR_FASE: Record<FaseProyecto, Gate> = {
+  "Fase 0 — Fase previa": "G0",
+  "Fase I — Inicio / Project Charter": "G1",
+  "Fase IIA — Análisis de escenarios": "G2A",
+  "Fase IIB — Ingeniería básica solución escogida": "G2B",
+  "Fase III — Ingeniería de detalle": "G3",
+  "Fase IV — Ejecución": "G4",
+  "Fase V — Cierre": "G5",
+};
+
+/** Gates aplicables (correspondientes a fases obligatorias u opcionales) a una rigurosidad, en orden. */
+export function gatesAplicables(rigurosidad: Rigurosidad): Gate[] {
+  return fasesAplicables(rigurosidad).map((fase) => GATE_POR_FASE[fase]);
 }

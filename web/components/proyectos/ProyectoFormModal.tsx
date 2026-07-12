@@ -9,10 +9,7 @@ import type {
   EstadoProyecto,
   FaseProyecto,
   Gate,
-  HorizonteTemporal,
-  NivelRiesgo,
   ObjetivoEstrategico,
-  Prioridad,
   Proyecto,
   Rigurosidad,
   TipoProyecto,
@@ -21,11 +18,10 @@ import {
   derivarGateStatusDesdeGateActual,
   ordenCategorias,
   ordenEstadosProyecto,
-  ordenFases,
   ordenGates,
   ordenObjetivosEstrategicos,
 } from "@/lib/proyectos/calculos";
-import { aplicacionDeFase, fasesAplicables } from "@/lib/proyectos/rigurosidad";
+import { aplicacionDeFase, fasesAplicables, gatesAplicables } from "@/lib/proyectos/rigurosidad";
 import { generarIdentificadorProyecto } from "@/lib/proyectos/identificadores";
 import SelectorPersona from "@/components/proyectos/SelectorPersona";
 
@@ -47,10 +43,7 @@ const departamentos: Departamento[] = [
   "Dirección",
 ];
 
-const prioridades: Prioridad[] = ["Alta", "Media", "Baja"];
 const rigurosidades: Rigurosidad[] = ["R1", "R2", "R3"];
-const nivelesRiesgo: NivelRiesgo[] = ["Bajo", "Medio", "Alto"];
-const horizontes: HorizonteTemporal[] = ["Corto plazo", "Medio plazo", "Largo plazo"];
 
 interface ProyectoFormModalProps {
   proyectoBase?: Proyecto;
@@ -149,6 +142,7 @@ export default function ProyectoFormModal({
   };
 
   const fasesMostradas = fasesAplicables(proyecto.rigurosidad);
+  const gatesMostrados = gatesAplicables(proyecto.rigurosidad);
 
   const manejarEnvio = (evento: FormEvent) => {
     evento.preventDefault();
@@ -168,7 +162,6 @@ export default function ProyectoFormModal({
       return;
     }
 
-    // Validación de fases obligatorias: el coste debe estar relleno.
     const faseObligatoriaSinCoste = fasesMostradas.find((fase) => {
       const aplicacion = aplicacionDeFase(fase, proyecto.rigurosidad);
       const detalle = proyecto.detallePorFase[fase];
@@ -399,6 +392,16 @@ export default function ProyectoFormModal({
                 </select>
               </Campo>
 
+              <Campo etiqueta="Gate actual">
+                <select
+                  value={proyecto.gateActual}
+                  onChange={(e) => cambiarGateActual(e.target.value as Gate)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                >
+                  {gatesMostrados.map((gate) => <option key={gate} value={gate}>{gate}</option>)}
+                </select>
+              </Campo>
+
               {proyecto.estado === "Cancelado" && (
                 <div className="sm:col-span-2 lg:col-span-3">
                   <Campo etiqueta="Motivo de cancelación *">
@@ -411,130 +414,10 @@ export default function ProyectoFormModal({
                 </div>
               )}
 
-              <Campo etiqueta="Nivel de riesgo">
-                <select
-                  value={proyecto.nivelRiesgo}
-                  onChange={(e) => actualizarCampo("nivelRiesgo", e.target.value as NivelRiesgo)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                >
-                  {nivelesRiesgo.map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </Campo>
-
-              <Campo etiqueta="Horizonte temporal">
-                <select
-                  value={proyecto.horizonteTemporal}
-                  onChange={(e) => actualizarCampo("horizonteTemporal", e.target.value as HorizonteTemporal)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                >
-                  {horizontes.map((h) => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </Campo>
-
-              <Campo etiqueta="Propietario">
-                <input
-                  type="text" value={proyecto.propietario}
-                  onChange={(e) => actualizarCampo("propietario", e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="Prioridad">
-                <select
-                  value={proyecto.prioridad}
-                  onChange={(e) => actualizarCampo("prioridad", e.target.value as Prioridad)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                >
-                  {prioridades.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </Campo>
-
-              <Campo etiqueta="Presupuesto aprobado (€)">
-                <input
-                  type="number" min={0} value={proyecto.presupuestoAprobado}
-                  onChange={(e) => actualizarCampo("presupuestoAprobado", Number(e.target.value))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="Importe comprometido (€)">
-                <input
-                  type="number" min={0} value={proyecto.importeComprometido}
-                  onChange={(e) => actualizarCampo("importeComprometido", Number(e.target.value))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta={proyecto.numeroJobBC ? "Actuals (€) — vinculado a BC, solo lectura" : "Actuals (€)"}>
-                <input
-                  type="number" min={0} disabled={Boolean(proyecto.numeroJobBC)} value={proyecto.importeGastado}
-                  onChange={(e) => actualizarCampo("importeGastado", Number(e.target.value))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="ETC (€)">
-                <input
-                  type="number" min={0} value={proyecto.etc}
-                  onChange={(e) => actualizarCampo("etc", Number(e.target.value))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
               <Campo etiqueta="Número Job BC">
                 <input
                   type="text" value={proyecto.numeroJobBC ?? ""}
                   onChange={(e) => actualizarCampo("numeroJobBC", e.target.value.trim() === "" ? null : e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="Fecha de inicio">
-                <input
-                  type="date" value={proyecto.fechaInicio}
-                  onChange={(e) => actualizarCampo("fechaInicio", e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="Fecha prevista de fin">
-                <input
-                  type="date" value={proyecto.fechaFinPrevista}
-                  onChange={(e) => actualizarCampo("fechaFinPrevista", e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="Avance (%)">
-                <input
-                  type="number" min={0} max={100} value={proyecto.avance}
-                  onChange={(e) => actualizarCampo("avance", Number(e.target.value))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="Gate actual">
-                <select
-                  value={proyecto.gateActual}
-                  onChange={(e) => cambiarGateActual(e.target.value as Gate)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                >
-                  {ordenGates.map((gate) => <option key={gate} value={gate}>{gate}</option>)}
-                </select>
-              </Campo>
-
-              <Campo etiqueta="Fecha próximo gate">
-                <input
-                  type="date" value={proyecto.fechaProximoGate ?? ""}
-                  onChange={(e) => actualizarCampo("fechaProximoGate", e.target.value === "" ? undefined : e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                />
-              </Campo>
-
-              <Campo etiqueta="Fecha último gate">
-                <input
-                  type="date" value={proyecto.fechaUltimoGate ?? ""}
-                  onChange={(e) => actualizarCampo("fechaUltimoGate", e.target.value === "" ? undefined : e.target.value)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                 />
               </Campo>
@@ -544,16 +427,6 @@ export default function ProyectoFormModal({
                   <input
                     type="number" min={0} value={proyecto.exposicionRiesgo ?? 0}
                     onChange={(e) => actualizarCampo("exposicionRiesgo", Number(e.target.value))}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                  />
-                </Campo>
-              )}
-
-              {proyecto.categoria === "Creación de valor" && (
-                <Campo etiqueta="Beneficio esperado (€)">
-                  <input
-                    type="number" min={0} value={proyecto.beneficioEsperado ?? 0}
-                    onChange={(e) => actualizarCampo("beneficioEsperado", Number(e.target.value))}
                     className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                   />
                 </Campo>
