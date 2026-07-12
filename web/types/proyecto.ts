@@ -37,7 +37,8 @@ export type EstadoProyecto =
   | "En riesgo"
   | "Fuera de control"
   | "En pausa"
-  | "Cancelado";
+  | "Cancelado"
+  | "Terminado";
 
 export type ObjetivoEstrategico =
   | "Fiabilidad operativa"

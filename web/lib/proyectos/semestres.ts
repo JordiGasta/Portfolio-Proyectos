@@ -34,7 +34,6 @@ function mismoSemestre(a: Semestre, b: Semestre): boolean {
   return a.anio === b.anio && a.semestre === b.semestre;
 }
 
-/** Semestre de una fecha ISO. Corte 30 junio: ene–jun = S1, jul–dic = S2. */
 function semestreDeFecha(fechaIso: string | undefined): Semestre | null {
   if (!fechaIso) return null;
   const fecha = new Date(`${fechaIso}T00:00:00`);
@@ -42,42 +41,20 @@ function semestreDeFecha(fechaIso: string | undefined): Semestre | null {
   return { anio: fecha.getFullYear(), semestre: fecha.getMonth() < 6 ? 1 : 2 };
 }
 
-/**
- * Detecta automáticamente todos los semestres que aparecen en los
- * datos: fechas de fin de fase (presupuesto) y meses con gasto en
- * 2026. Devuelve la lista continua de semestres, del más antiguo al
- * más reciente.
- */
+/** Semestre ancla: donde arrancan los datos reales de gasto mensual (S1 2026). */
+const ANCLA: Semestre = { anio: 2026, semestre: 1 };
+
 export function detectarSemestres(proyectos: Proyecto[]): Semestre[] {
-  const indices: number[] = [];
+  let maximo = indiceSemestre(ANCLA);
 
   proyectos.forEach((proyecto) => {
-    // Fechas de fin de fase (presupuesto).
-    Object.values(proyecto.detallePorFase).forEach((detalle) => {
-      const s = semestreDeFecha(detalle?.fechaFin);
-      if (s) indices.push(indiceSemestre(s));
-    });
-
-    // Meses con gasto en 2026.
-    const meses = proyecto.gastoMensual2026 ?? [];
-    if (meses.slice(0, 6).some((m) => m > 0)) {
-      indices.push(indiceSemestre({ anio: 2026, semestre: 1 }));
-    }
-    if (meses.slice(6, 12).some((m) => m > 0)) {
-      indices.push(indiceSemestre({ anio: 2026, semestre: 2 }));
+    const s = semestreDeFecha(proyecto.fechaFinPrevista);
+    if (s) {
+      maximo = Math.max(maximo, indiceSemestre(s));
     }
   });
 
-  if (indices.length === 0) {
-    const anio = new Date().getFullYear();
-    return [
-      { anio, semestre: 1 },
-      { anio, semestre: 2 },
-    ];
-  }
-
-  const minimo = Math.min(...indices);
-  const maximo = Math.max(...indices);
+  const minimo = indiceSemestre(ANCLA);
   const lista: Semestre[] = [];
   for (let i = minimo; i <= maximo; i += 1) {
     lista.push(semestreDesdeIndice(i));
@@ -85,7 +62,24 @@ export function detectarSemestres(proyectos: Proyecto[]): Semestre[] {
   return lista;
 }
 
-/** Gasto de un proyecto en un semestre (solo hay gasto mensual de 2026). */
+function sumaGastoMensual(proyecto: Proyecto): number {
+  return (proyecto.gastoMensual2026 ?? []).reduce((t, v) => t + (v ?? 0), 0);
+}
+
+/**
+ * Presupuesto disponible del proyecto al ENTRAR en 2026: el total
+ * aprobado menos todo lo gastado antes de 2026 (histórico total menos
+ * lo gastado dentro de 2026). Es lo que de verdad hay que repartir
+ * entre los semestres de 2026 que se muestran en el gráfico — no el
+ * presupuesto total del proyecto, que puede incluir gasto ya
+ * ejecutado en años anteriores.
+ */
+function presupuestoDisponible2026(proyecto: Proyecto): number {
+  const gastado2026 = sumaGastoMensual(proyecto);
+  const gastadoAntesDe2026 = proyecto.importeGastado - gastado2026;
+  return Math.max(0, proyecto.presupuestoAprobado - gastadoAntesDe2026);
+}
+
 function gastoEnSemestre(proyecto: Proyecto, semestre: Semestre): number {
   if (semestre.anio !== 2026) return 0;
   const meses = proyecto.gastoMensual2026 ?? [];
@@ -94,11 +88,20 @@ function gastoEnSemestre(proyecto: Proyecto, semestre: Semestre): number {
   return meses.slice(desde, hasta).reduce((t, v) => t + (v ?? 0), 0);
 }
 
+function semestresDeEjecucion(proyecto: Proyecto): number {
+  const finSemestre = semestreDeFecha(proyecto.fechaFinPrevista);
+  if (!finSemestre) return 1;
+  const duracion = indiceSemestre(finSemestre) - indiceSemestre(ANCLA) + 1;
+  return Math.max(1, duracion);
+}
+
 /**
- * Para cada semestre:
- *  - Presupuesto: suma del coste de las fases cuya fecha de fin cae en
- *    ese semestre.
- *  - Gastado: suma del gasto mensual del proyecto en ese semestre.
+ * Para cada semestre visible:
+ *  - Presupuesto: el presupuesto DISPONIBLE PARA 2026 del proyecto
+ *    (total menos lo ya gastado antes de 2026) repartido a partes
+ *    iguales entre los semestres que dura su ejecución dentro de la
+ *    ventana mostrada (desde S1 2026 hasta su fecha de fin prevista).
+ *  - Gastado: el gasto mensual real del proyecto en ese semestre.
  */
 export function calcularDatosPorSemestre(
   proyectos: Proyecto[],
@@ -110,25 +113,29 @@ export function calcularDatosPorSemestre(
     const contribuciones: ContribucionProyectoSemestre[] = [];
 
     proyectos.forEach((proyecto) => {
-      let presupuestoProyecto = 0;
-      Object.values(proyecto.detallePorFase).forEach((detalle) => {
-        if (!detalle?.coste || !detalle.fechaFin) return;
-        const s = semestreDeFecha(detalle.fechaFin);
-        if (s && mismoSemestre(s, semestre)) {
-          presupuestoProyecto += detalle.coste;
-        }
-      });
+      const finSemestre = semestreDeFecha(proyecto.fechaFinPrevista);
+      const numSemestres = semestresDeEjecucion(proyecto);
+      const disponible2026 = presupuestoDisponible2026(proyecto);
 
-      const gastoProyecto = gastoEnSemestre(proyecto, semestre);
+      const dentroDelRango =
+        finSemestre &&
+        indiceSemestre(semestre) >= indiceSemestre(ANCLA) &&
+        indiceSemestre(semestre) <= indiceSemestre(finSemestre);
 
-      presupuesto += presupuestoProyecto;
-      gastado += gastoProyecto;
+      const presupuestoSemestre = dentroDelRango
+        ? disponible2026 / numSemestres
+        : 0;
 
-      if (presupuestoProyecto > 0 || gastoProyecto > 0) {
+      const gastoSemestre = gastoEnSemestre(proyecto, semestre);
+
+      presupuesto += presupuestoSemestre;
+      gastado += gastoSemestre;
+
+      if (presupuestoSemestre > 0 || gastoSemestre > 0) {
         contribuciones.push({
           proyecto,
-          presupuesto: presupuestoProyecto,
-          gastado: gastoProyecto,
+          presupuesto: presupuestoSemestre,
+          gastado: gastoSemestre,
         });
       }
     });

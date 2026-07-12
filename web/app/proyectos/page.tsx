@@ -85,6 +85,10 @@ export default function PaginaProyectos() {
           proyecto={proyectoSeleccionado}
           onCerrar={() => setProyectoSeleccionado(null)}
           onEditar={() => abrirEdicion(proyectoSeleccionado)}
+          onCerrarProyecto={(proyectoActualizado) => {
+            actualizarProyecto(proyectoActualizado);
+            setProyectoSeleccionado(null);
+          }}
         />
       )}
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import type { Proyecto } from "@/types/proyecto";
+import type { FaseProyecto, Gate, Proyecto } from "@/types/proyecto";
 import EstadoSaludDot from "@/components/proyectos/EstadoSaludDot";
 import CategoriaBadge from "@/components/proyectos/CategoriaBadge";
 import GateProgresionPills from "@/components/proyectos/GateProgresionPills";
@@ -11,8 +11,12 @@ import VariacionBadge from "@/components/proyectos/VariacionBadge";
 import {
   calcularEAC,
   calcularVariacionPorcentual,
+  derivarGateStatusDesdeGateActual,
   obtenerProximoGate,
+  ordenFases,
+  ordenGates,
 } from "@/lib/proyectos/calculos";
+import { fasesAplicables } from "@/lib/proyectos/rigurosidad";
 import { generarGateReviewDocx } from "@/lib/proyectos/gateReviewDocx";
 import { formatearEuros, formatearFecha } from "@/lib/format/formato";
 
@@ -20,18 +24,30 @@ interface DetalleProyectoModalProps {
   proyecto: Proyecto;
   onCerrar: () => void;
   onEditar?: () => void;
+  onCerrarProyecto?: (proyectoActualizado: Proyecto) => void;
+}
+
+/** Gate correspondiente a cada fase (misma correspondencia posicional que en lib/proyectos/rigurosidad.ts). */
+function gateDeFase(fase: FaseProyecto): Gate {
+  const indice = ordenFases.indexOf(fase);
+  return ordenGates[indice] ?? "G0";
 }
 
 export default function DetalleProyectoModal({
   proyecto,
   onCerrar,
   onEditar,
+  onCerrarProyecto,
 }: DetalleProyectoModalProps) {
   const eac = calcularEAC(proyecto);
   const variacion = calcularVariacionPorcentual(proyecto);
   const proximoGate = obtenerProximoGate(proyecto);
   const [generando, setGenerando] = useState(false);
   const [errorGeneracion, setErrorGeneracion] = useState<string | null>(null);
+
+  const fasesDelProyecto = fasesAplicables(proyecto.rigurosidad);
+  const ultimaFaseAplicable = fasesDelProyecto[fasesDelProyecto.length - 1];
+  const yaEstaCerrado = proyecto.fase === ultimaFaseAplicable;
 
   const manejarGenerarPaquete = async () => {
     setGenerando(true);
@@ -43,6 +59,19 @@ export default function DetalleProyectoModal({
     } finally {
       setGenerando(false);
     }
+  };
+
+  const manejarCerrarProyecto = () => {
+    const gateFinal = gateDeFase(ultimaFaseAplicable);
+    const proyectoCerrado: Proyecto = {
+      ...proyecto,
+      fase: ultimaFaseAplicable,
+      gateActual: gateFinal,
+      gateStatus: derivarGateStatusDesdeGateActual(gateFinal).map(() => 2),
+      avance: 100,
+      estado: "Terminado",
+    };
+    onCerrarProyecto?.(proyectoCerrado);
   };
 
   return (
@@ -91,6 +120,14 @@ export default function DetalleProyectoModal({
             </section>
           )}
 
+          {yaEstaCerrado && (
+            <section className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-medium text-emerald-700">
+                Este proyecto está cerrado ({ultimaFaseAplicable}).
+              </p>
+            </section>
+          )}
+
           <section className="mt-6 rounded-lg bg-slate-50 p-4">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
               <Campo etiqueta="Presupuesto aprobado" valor={formatearEuros(proyecto.presupuestoAprobado)} />
@@ -128,6 +165,15 @@ export default function DetalleProyectoModal({
             >
               {generando ? "Generando…" : "Generar paquete de gate review"}
             </button>
+            {onCerrarProyecto && !yaEstaCerrado && (
+              <button
+                type="button"
+                onClick={manejarCerrarProyecto}
+                className="rounded-md border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+              >
+                Cerrar proyecto
+              </button>
+            )}
             {onEditar && (
               <button type="button" onClick={onEditar} className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">
                 Editar proyecto

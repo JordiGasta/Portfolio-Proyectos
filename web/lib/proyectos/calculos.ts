@@ -17,7 +17,11 @@ export interface ResumenPortfolio {
 }
 
 export function estaRetrasado(proyecto: Proyecto): boolean {
-  if (proyecto.estado === "Cancelado" || proyecto.fase === "Fase V — Cierre") {
+  if (
+    proyecto.estado === "Cancelado" ||
+    proyecto.estado === "Terminado" ||
+    proyecto.fase === "Fase V — Cierre"
+  ) {
     return false;
   }
 
@@ -146,7 +150,11 @@ export function calcularDiasDesdeUltimoGate(proyecto: Proyecto): number | null {
 }
 
 export function esProyectoZombie(proyecto: Proyecto): boolean {
-  if (proyecto.estado === "En pausa" || proyecto.estado === "Cancelado") {
+  if (
+    proyecto.estado === "En pausa" ||
+    proyecto.estado === "Cancelado" ||
+    proyecto.estado === "Terminado"
+  ) {
     return false;
   }
 
@@ -166,7 +174,11 @@ export function tieneGateVencido(proyecto: Proyecto): boolean {
     return false;
   }
 
-  if (proyecto.estado === "Cancelado" || proyecto.fase === "Fase V — Cierre") {
+  if (
+    proyecto.estado === "Cancelado" ||
+    proyecto.estado === "Terminado" ||
+    proyecto.fase === "Fase V — Cierre"
+  ) {
     return false;
   }
 
@@ -177,8 +189,15 @@ export function tieneGateVencido(proyecto: Proyecto): boolean {
   return hoy.getTime() > fechaProximoGate.getTime();
 }
 
+/**
+ * Un proyecto se considera "activo" (parte del portfolio en curso a
+ * efectos de presupuesto y gasto) mientras su estado no sea
+ * "Terminado". Se usa el estado en lugar de la fase, porque el gate
+ * final de un cierre depende de la rigurosidad (R1 cierra en Fase IV,
+ * R2/R3 en Fase V).
+ */
 export function esProyectoActivo(proyecto: Proyecto): boolean {
-  return proyecto.fase !== "Fase V — Cierre";
+  return proyecto.estado !== "Terminado";
 }
 
 export function proyectosActivos(proyectos: Proyecto[]): Proyecto[] {
@@ -221,20 +240,21 @@ export function contarSobrecostes(proyectos: Proyecto[]): number {
   return proyectos.filter(tieneSobrecoste).length;
 }
 
-/** Los 3 valores de salud "activa" (sin pausa/cancelado), para el Health breakdown. */
+/** Los 3 valores de salud "activa" (sin pausa/cancelado/terminado), para el Health breakdown. */
 export const ordenSalud: EstadoProyecto[] = [
   "En curso",
   "En riesgo",
   "Fuera de control",
 ];
 
-/** Los 5 valores completos del campo estado, para filtros y formularios. */
+/** Los 6 valores completos del campo estado, para filtros y formularios. */
 export const ordenEstadosProyecto: EstadoProyecto[] = [
   "En curso",
   "En riesgo",
   "Fuera de control",
   "En pausa",
   "Cancelado",
+  "Terminado",
 ];
 
 export function contarPorSalud(
@@ -242,7 +262,9 @@ export function contarPorSalud(
 ): Array<{ estadoSalud: EstadoProyecto; cantidad: number }> {
   const elegibles = proyectos.filter(
     (proyecto) =>
-      proyecto.estado !== "En pausa" && proyecto.estado !== "Cancelado",
+      proyecto.estado !== "En pausa" &&
+      proyecto.estado !== "Cancelado" &&
+      proyecto.estado !== "Terminado",
   );
 
   return ordenSalud.map((estadoSalud) => ({
