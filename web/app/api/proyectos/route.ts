@@ -9,20 +9,12 @@ import {
   sharePointEstaConfigurado,
 } from "@/lib/sharepoint/configuracion";
 import { llamarGraph } from "@/lib/sharepoint/graphClient";
+import { itemSharePointAProyecto } from "@/lib/sharepoint/mapeoLista";
 
-/**
- * Ruta de API que devuelve la lista de proyectos.
- *
- * Fuente de la verdad: la lista de SharePoint (cuando esté
- * configurada). Mientras no lo esté, se usa el almacén local de
- * desarrollo.
- *
- * NOTA: el mapeo de los campos reales de la lista de SharePoint al
- * modelo de la aplicación se implementará como parte de la
- * conexión definitiva; por ahora, si SharePoint está configurado,
- * esta ruta confirma que la conexión funciona pero sigue devolviendo
- * el almacén local hasta completar el mapeo.
- */
+interface ElementoListaSharePoint {
+  fields: Record<string, unknown>;
+}
+
 export async function GET() {
   const configurado = sharePointEstaConfigurado();
 
@@ -32,20 +24,26 @@ export async function GET() {
   }
 
   try {
-    const config = obtenerConfiguracionSharePoint();
+    const config = obtenerConfiguracionSharePoint()!;
     const datos = (await llamarGraph(
-      `/sites/${config!.siteId}/lists/${config!.listId}/items?expand=fields`,
-    )) as { value: unknown[] };
+      `/sites/${config.siteId}/lists/${config.listId}/items?expand=fields`,
+    )) as { value: ElementoListaSharePoint[] };
 
-    const proyectos = await leerProyectosLocales();
+    if (datos.value.length === 0) {
+      const proyectos = await leerProyectosLocales();
+      return NextResponse.json({
+        origen: "sharepoint-vacio",
+        aviso:
+          "La lista de SharePoint está conectada pero vacía. Usa la utilidad de subida para poblarla con los proyectos reales.",
+        proyectos,
+      });
+    }
 
-    return NextResponse.json({
-      origen: "sharepoint",
-      totalElementosSharePoint: datos.value.length,
-      avisoMapeo:
-        "Conexión correcta. El mapeo de campos de SharePoint al modelo de la aplicación todavía no está implementado; se sigue devolviendo el listado local.",
-      proyectos,
-    });
+    const proyectos = datos.value.map((item) =>
+      itemSharePointAProyecto(item.fields),
+    );
+
+    return NextResponse.json({ origen: "sharepoint", proyectos });
   } catch (error) {
     const proyectos = await leerProyectosLocales();
     return NextResponse.json({
