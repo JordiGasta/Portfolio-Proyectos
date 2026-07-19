@@ -39,7 +39,10 @@ function gastado2025(proyecto: Proyecto): number {
  * aprobado menos lo gastado antes de 2026.
  */
 function presupuestoDisponible2026(proyecto: Proyecto): number {
-  return Math.max(0, proyecto.presupuestoAprobado - gastado2025(proyecto));
+  // Usa directamente el carryover real (columna "Carryover 2025" de
+  // SharePoint), en vez de derivarlo del gasto mensual, que no está
+  // disponible para los proyectos leídos desde SharePoint.
+  return proyecto.carryover2025 ?? 0;
 }
 
 /** Detecta los años a mostrar: 2025 fijo, y desde 2026 hasta la fecha de fin prevista más lejana. */

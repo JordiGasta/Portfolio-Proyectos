@@ -49,7 +49,7 @@ export function ProyectosProvider({ children }: { children: ReactNode }) {
 
     async function cargarProyectos() {
       try {
-        const respuesta = await fetch("/api/proyectos");
+        const respuesta = await fetch("/api/proyectos", { cache: "no-store" });
         const datos = await respuesta.json();
 
         if (activo && Array.isArray(datos.proyectos)) {

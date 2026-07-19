@@ -82,6 +82,7 @@ export function proyectoAFieldsSharePoint(
     Actuals: proyecto.importeGastado,
     Estado: proyecto.estado,
     Descripci_x00f3_n: proyecto.descripcion,
+    Carryover2025: proyecto.carryover2025,
   };
 
   if (proyecto.numeroJobBC) fields.BCJobNumber = proyecto.numeroJobBC;
@@ -198,5 +199,6 @@ export function itemSharePointAProyecto(
     horizonteTemporal: "Corto plazo",
     detallePorFase,
     gastoMensual2026: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    carryover2025: (fields.Carryover2025 as number) ?? 0,
   };
 }

@@ -11,6 +11,9 @@ import {
 import { llamarGraph } from "@/lib/sharepoint/graphClient";
 import { itemSharePointAProyecto } from "@/lib/sharepoint/mapeoLista";
 
+// Evita que Next.js cachee esta ruta: siempre debe consultar datos en vivo.
+export const dynamic = "force-dynamic";
+
 interface ElementoListaSharePoint {
   fields: Record<string, unknown>;
 }

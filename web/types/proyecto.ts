@@ -96,4 +96,6 @@ export interface Proyecto {
   detallePorFase: Partial<Record<FaseProyecto, DetalleFase>>;
   /** Gasto real mes a mes de 2026 (12 valores: enero..diciembre). */
   gastoMensual2026: number[];
+  /** Presupuesto de carryover (columna 'Carryover 2025' de SharePoint / 'Carryover 2025 + New Projects 2026' del Excel original). */
+  carryover2025: number;
 }

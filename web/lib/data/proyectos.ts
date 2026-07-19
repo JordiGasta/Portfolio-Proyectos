@@ -140,6 +140,7 @@ function base(
       ? fasesFase4(presupuestoRedondeado)
       : fasesFase3(presupuestoRedondeado),
     gastoMensual2026: gastoMensual2026.map((v) => Math.round(v)),
+    carryover2025: 0,
   };
 }
 

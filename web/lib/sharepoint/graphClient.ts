@@ -67,6 +67,7 @@ export async function llamarGraph(
 
   const respuesta = await fetch(`https://graph.microsoft.com/v1.0${ruta}`, {
     ...opciones,
+    cache: "no-store",
     headers: {
       ...opciones.headers,
       Authorization: `Bearer ${token}`,
