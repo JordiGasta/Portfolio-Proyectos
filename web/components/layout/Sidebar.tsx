@@ -29,8 +29,13 @@ function formatearHora(fecha: Date): string {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { proyectos, ultimaSincronizacion, sincronizando, sincronizarBC } =
-    useProyectos();
+  const {
+    proyectos,
+    ultimaSincronizacion,
+    sincronizando,
+    sincronizacionReal,
+    sincronizarBC,
+  } = useProyectos();
   const gatesVencidos = proyectos.filter(tieneGateVencido).length;
 
   return (
@@ -73,6 +78,17 @@ export default function Sidebar() {
               ? `Última sincronización: ${formatearHora(ultimaSincronizacion)}`
               : "Sin sincronizar todavía"}
           </p>
+          {ultimaSincronizacion && (
+            <p
+              className={`mt-1 text-[11px] font-medium ${
+                sincronizacionReal ? "text-emerald-400" : "text-amber-400"
+              }`}
+            >
+              {sincronizacionReal
+                ? "Datos reales de Business Central"
+                : "Simulación (BC no conectado todavía)"}
+            </p>
+          )}
         </div>
 
         <div className="border-t border-slate-800 pt-3">
