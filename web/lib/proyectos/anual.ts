@@ -1,9 +1,17 @@
 import type { Proyecto } from "@/types/proyecto";
 
+export interface FilaHistoricoCapex {
+  projectId: string;
+  anio: number;
+  presupuestoAnual: number;
+  gastadoAnual: number;
+}
+
 export interface ContribucionProyectoAnio {
   proyecto: Proyecto;
   presupuesto: number;
   gastado: number;
+  esEstimado: boolean;
 }
 
 export interface DatosAnio {
@@ -13,113 +21,143 @@ export interface DatosAnio {
   contribuciones: ContribucionProyectoAnio[];
 }
 
-function sumaGastoMensual(proyecto: Proyecto): number {
-  return (proyecto.gastoMensual2026 ?? []).reduce((t, v) => t + (v ?? 0), 0);
-}
-
-function anioDeFecha(fechaIso: string | undefined): number | null {
-  if (!fechaIso) return null;
-  const fecha = new Date(`${fechaIso}T00:00:00`);
-  if (Number.isNaN(fecha.getTime())) return null;
-  return fecha.getFullYear();
+export interface DatosSemestreAnio {
+  semestre: 1 | 2;
+  presupuesto: number;
+  gastado: number;
+  esEstimado: boolean;
+  contribuciones: ContribucionProyectoAnio[];
 }
 
 /**
- * Gastado histórico de un proyecto en 2025: el total gastado menos lo
- * gastado dentro de 2026 (los 12 meses de los que sí tenemos
- * desglose). Se asume que todo el gasto anterior a 2026 ocurrió en
- * 2025 (no hay datos de años anteriores en el Excel).
+ * Detecta los años a mostrar en el selector: el año actual, los 2
+ * anteriores y los 2 siguientes (igual que en el Cronograma).
  */
-function gastado2025(proyecto: Proyecto): number {
-  return Math.max(0, proyecto.importeGastado - sumaGastoMensual(proyecto));
+export function detectarAnios(): number[] {
+  const anioActual = new Date().getFullYear();
+  return [
+    anioActual - 2,
+    anioActual - 1,
+    anioActual,
+    anioActual + 1,
+    anioActual + 2,
+  ];
 }
 
 /**
- * Presupuesto disponible del proyecto al entrar en 2026: el total
- * aprobado menos lo gastado antes de 2026.
- */
-function presupuestoDisponible2026(proyecto: Proyecto): number {
-  // Usa directamente el carryover real (columna "Carryover 2025" de
-  // SharePoint), en vez de derivarlo del gasto mensual, que no está
-  // disponible para los proyectos leídos desde SharePoint.
-  return proyecto.carryover2025 ?? 0;
-}
-
-/** Detecta los años a mostrar: 2025 fijo, y desde 2026 hasta la fecha de fin prevista más lejana. */
-export function detectarAnios(proyectos: Proyecto[]): number[] {
-  let maximo = 2026;
-  proyectos.forEach((proyecto) => {
-    const anio = anioDeFecha(proyecto.fechaFinPrevista);
-    if (anio) maximo = Math.max(maximo, anio);
-  });
-
-  const lista: number[] = [];
-  for (let a = 2025; a <= maximo; a += 1) lista.push(a);
-  return lista;
-}
-
-/**
- * Para cada año:
- *  - 2025: presupuesto = gastado (año histórico cerrado, no se
- *    conoce un presupuesto anual distinto, así que se igualan).
- *  - 2026: presupuesto = disponible para 2026 (repartido a partes
- *    iguales entre 2026 y los años posteriores si el proyecto
- *    termina más tarde); gastado = suma real de los 12 meses.
- *  - Años posteriores a 2026 (si los hay): mismo reparto que 2026,
- *    sin datos de gasto todavía.
+ * Para un año concreto, busca en el histórico real (leído de
+ * HistoricoCapexAnual) la fila de cada proyecto. Si un proyecto no
+ * tiene fila para ese año (todavía no se ha dado de alta el
+ * presupuesto de ese ejercicio, o el proyecto ya no existía), no
+ * aporta nada a ese año. La app nunca calcula ni estima el
+ * presupuesto: solo muestra lo que Finanzas ha registrado.
  */
 export function calcularDatosPorAnio(
   proyectos: Proyecto[],
-  anios: number[],
-): DatosAnio[] {
-  return anios.map((anio) => {
-    let presupuesto = 0;
-    let gastado = 0;
-    const contribuciones: ContribucionProyectoAnio[] = [];
+  historico: FilaHistoricoCapex[],
+  anio: number,
+): DatosAnio {
+  let presupuesto = 0;
+  let gastado = 0;
+  const contribuciones: ContribucionProyectoAnio[] = [];
 
-    proyectos.forEach((proyecto) => {
-      let presupuestoAnio = 0;
-      let gastadoAnio = 0;
+  proyectos.forEach((proyecto) => {
+    const fila = historico.find(
+      (h) => h.projectId === proyecto.codigo && h.anio === anio,
+    );
+    if (!fila) {
+      return;
+    }
 
-      if (anio === 2025) {
-        const g2025 = gastado2025(proyecto);
-        presupuestoAnio = g2025;
-        gastadoAnio = g2025;
-      } else {
-        const anioFin = anioDeFecha(proyecto.fechaFinPrevista) ?? 2026;
-        const inicioReparto = 2026;
-        const finReparto = Math.max(inicioReparto, anioFin);
-        const numAnios = finReparto - inicioReparto + 1;
-
-        if (anio >= inicioReparto && anio <= finReparto) {
-          presupuestoAnio = presupuestoDisponible2026(proyecto) / numAnios;
-        }
-
-        if (anio === 2026) {
-          gastadoAnio = sumaGastoMensual(proyecto);
-        }
-      }
-
-      presupuesto += presupuestoAnio;
-      gastado += gastadoAnio;
-
-      if (presupuestoAnio > 0 || gastadoAnio > 0) {
-        contribuciones.push({ proyecto, presupuesto: presupuestoAnio, gastado: gastadoAnio });
-      }
+    presupuesto += fila.presupuestoAnual;
+    gastado += fila.gastadoAnual;
+    contribuciones.push({
+      proyecto,
+      presupuesto: fila.presupuestoAnual,
+      gastado: fila.gastadoAnual,
+      esEstimado: false,
     });
-
-    contribuciones.sort((a, b) => b.presupuesto - a.presupuesto);
-    return { anio, presupuesto, gastado, contribuciones };
   });
+
+  contribuciones.sort((a, b) => b.presupuesto - a.presupuesto);
+  return { anio, presupuesto, gastado, contribuciones };
 }
 
-/** Gasto mes a mes de un proyecto en un año concreto. Solo hay datos reales para 2026. */
-export function gastoMensualDeAnio(proyecto: Proyecto, anio: number): number[] | null {
-  if (anio !== 2026) return null;
-  return proyecto.gastoMensual2026 ?? null;
-}
+/**
+ * Reparte los datos anuales de un proyecto entre S1 y S2. Si el
+ * proyecto es el año en curso y tiene desglose mensual real
+ * (gastoMensual2026), se usa ese detalle exacto. Si no hay desglose
+ * mensual disponible, se reparte el total a partes iguales (50/50)
+ * entre los dos semestres, marcado como estimado.
+ */
+export function calcularDatosPorSemestreDeAnio(
+  proyectos: Proyecto[],
+  historico: FilaHistoricoCapex[],
+  anio: number,
+): [DatosSemestreAnio, DatosSemestreAnio] {
+  const anioActual = new Date().getFullYear();
+  const resultado: [DatosSemestreAnio, DatosSemestreAnio] = [
+    { semestre: 1, presupuesto: 0, gastado: 0, esEstimado: false, contribuciones: [] },
+    { semestre: 2, presupuesto: 0, gastado: 0, esEstimado: false, contribuciones: [] },
+  ];
 
-export const NOMBRES_MES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
+  proyectos.forEach((proyecto) => {
+    const fila = historico.find(
+      (h) => h.projectId === proyecto.codigo && h.anio === anio,
+    );
+    if (!fila) {
+      return;
+    }
+
+    const meses = anio === anioActual ? proyecto.gastoMensual2026 : undefined;
+    const hayDatosMensuales = meses && meses.some((m) => m > 0);
+
+    if (hayDatosMensuales && meses) {
+      const gastadoS1 = meses.slice(0, 6).reduce((t, v) => t + (v ?? 0), 0);
+      const gastadoS2 = meses.slice(6, 12).reduce((t, v) => t + (v ?? 0), 0);
+      const presupuestoS1 = fila.presupuestoAnual / 2;
+      const presupuestoS2 = fila.presupuestoAnual / 2;
+
+      resultado[0].presupuesto += presupuestoS1;
+      resultado[0].gastado += gastadoS1;
+      resultado[0].contribuciones.push({
+        proyecto, presupuesto: presupuestoS1, gastado: gastadoS1, esEstimado: false,
+      });
+
+      resultado[1].presupuesto += presupuestoS2;
+      resultado[1].gastado += gastadoS2;
+      resultado[1].contribuciones.push({
+        proyecto, presupuesto: presupuestoS2, gastado: gastadoS2, esEstimado: false,
+      });
+    } else {
+      // Sin desglose mensual real: reparto 50/50 estimado.
+      const mitad = (valor: number) => valor / 2;
+
+      resultado[0].presupuesto += mitad(fila.presupuestoAnual);
+      resultado[0].gastado += mitad(fila.gastadoAnual);
+      resultado[0].esEstimado = true;
+      resultado[0].contribuciones.push({
+        proyecto,
+        presupuesto: mitad(fila.presupuestoAnual),
+        gastado: mitad(fila.gastadoAnual),
+        esEstimado: true,
+      });
+
+      resultado[1].presupuesto += mitad(fila.presupuestoAnual);
+      resultado[1].gastado += mitad(fila.gastadoAnual);
+      resultado[1].esEstimado = true;
+      resultado[1].contribuciones.push({
+        proyecto,
+        presupuesto: mitad(fila.presupuestoAnual),
+        gastado: mitad(fila.gastadoAnual),
+        esEstimado: true,
+      });
+    }
+  });
+
+  resultado.forEach((s) =>
+    s.contribuciones.sort((a, b) => b.presupuesto - a.presupuesto),
+  );
+
+  return resultado;
+}

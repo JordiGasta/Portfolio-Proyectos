@@ -1,69 +1,128 @@
-import type { Trimestre } from "@/lib/proyectos/capex";
-import { obtenerTrimestreDeFecha } from "@/lib/proyectos/capex";
-
-function indiceTrimestre(trimestre: Trimestre): number {
-  return trimestre.anio * 4 + (trimestre.trimestre - 1);
-}
+import type { FaseProyecto, Proyecto } from "@/types/proyecto";
+import { ordenFases } from "@/lib/proyectos/calculos";
 
 export interface PosicionBarra {
+  /** Posición de inicio, en unidades de mes (puede tener decimales según el día). */
   inicio: number;
+  /** Ancho, en unidades de mes (puede tener decimales). */
   ancho: number;
 }
 
+const NOMBRES_MES = [
+  "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+];
+
+/** Genera los 12 meses (índice 0-11) del año indicado, con su etiqueta corta. */
+export function generarMeses(anio: number): { anio: number; mes: number; etiqueta: string }[] {
+  return NOMBRES_MES.map((nombre, mes) => ({
+    anio,
+    mes,
+    etiqueta: `${nombre} ${anio}`,
+  }));
+}
+
+function diasEnMes(anio: number, mesIndice0: number): number {
+  return new Date(anio, mesIndice0 + 1, 0).getDate();
+}
+
 /**
- * Calcula en qué columnas (0 a 7) de la ventana de trimestres debe
- * dibujarse una barra que va de fechaInicio a fechaFin. Si el rango no
- * solapa con la ventana visible, devuelve null.
+ * Convierte una fecha a una posición continua en "unidades de mes"
+ * relativa al 1 de enero del año indicado (unidad 0). El día dentro
+ * del mes se traduce a una fracción, para poder distinguir dos
+ * fechas del mismo mes (p. ej. día 21 y día 22).
  */
-export function calcularPosicionBarra(
+function fechaAUnidadMes(fecha: Date, anioBase: number): number {
+  const mesesDesdeBase = (fecha.getFullYear() - anioBase) * 12 + fecha.getMonth();
+  const dias = diasEnMes(fecha.getFullYear(), fecha.getMonth());
+  const fraccionDia = (fecha.getDate() - 1) / dias;
+  return mesesDesdeBase + fraccionDia;
+}
+
+/**
+ * Calcula la posición (en unidades de mes, con decimales) de un
+ * tramo que va de fechaInicio a fechaFin, recortado al año indicado.
+ * La fecha de fin se considera inclusiva (se añade un día de ancho),
+ * para que un tramo que termina el día 21 y otro que empieza el 22
+ * del mismo mes queden justo seguidos, sin solaparse ni dejar hueco.
+ */
+export function calcularPosicionBarraMensual(
   fechaInicioIso: string,
   fechaFinIso: string,
-  trimestres: Trimestre[],
+  anio: number,
 ): PosicionBarra | null {
   const inicio = new Date(`${fechaInicioIso}T00:00:00`);
   const fin = new Date(`${fechaFinIso}T00:00:00`);
 
-  const indiceInicio = indiceTrimestre(obtenerTrimestreDeFecha(inicio));
-  const indiceFin = indiceTrimestre(obtenerTrimestreDeFecha(fin));
+  const unidadInicio = fechaAUnidadMes(inicio, anio);
+  const diasFin = diasEnMes(fin.getFullYear(), fin.getMonth());
+  const unidadFin = fechaAUnidadMes(fin, anio) + 1 / diasFin; // inclusivo
 
-  const indiceVentanaInicio = indiceTrimestre(trimestres[0]);
-  const indiceVentanaFin = indiceTrimestre(trimestres[trimestres.length - 1]);
-
-  if (indiceFin < indiceVentanaInicio || indiceInicio > indiceVentanaFin) {
+  if (unidadFin <= 0 || unidadInicio >= 12) {
     return null;
   }
 
-  const inicioRecortado = Math.max(indiceInicio, indiceVentanaInicio);
-  const finRecortado = Math.min(indiceFin, indiceVentanaFin);
+  const inicioRecortado = Math.max(unidadInicio, 0);
+  const finRecortado = Math.min(unidadFin, 12);
 
   return {
-    inicio: inicioRecortado - indiceVentanaInicio,
-    ancho: finRecortado - inicioRecortado + 1,
+    inicio: inicioRecortado,
+    ancho: Math.max(0, finRecortado - inicioRecortado),
   };
 }
 
 /**
- * Calcula la posición (en unidades de columna, puede ser fraccionaria)
- * del día de hoy dentro de la ventana de trimestres, para dibujar la
- * línea vertical de "hoy".
+ * Calcula la posición (en unidades de mes, fraccionaria) del día de
+ * hoy dentro del año mostrado, para la línea de "hoy". Devuelve null
+ * si hoy no cae dentro del año seleccionado.
  */
-export function calcularPosicionHoy(trimestres: Trimestre[]): number {
+export function calcularPosicionHoyMensual(anio: number): number | null {
   const hoy = new Date();
-  const trimestreHoy = obtenerTrimestreDeFecha(hoy);
-  const indiceHoy = indiceTrimestre(trimestreHoy);
-  const indiceVentanaInicio = indiceTrimestre(trimestres[0]);
-  const columna = indiceHoy - indiceVentanaInicio;
+  if (hoy.getFullYear() !== anio) {
+    return null;
+  }
+  return fechaAUnidadMes(hoy, anio);
+}
 
-  const mesInicioTrimestre = (trimestreHoy.trimestre - 1) * 3;
-  const inicioTrimestre = new Date(hoy.getFullYear(), mesInicioTrimestre, 1);
-  const finTrimestre = new Date(hoy.getFullYear(), mesInicioTrimestre + 3, 0);
+export interface TramoFase {
+  fase: FaseProyecto;
+  posicion: PosicionBarra;
+}
 
-  const diasTotales =
-    (finTrimestre.getTime() - inicioTrimestre.getTime()) / 86400000 + 1;
-  const diasTranscurridos =
-    (hoy.getTime() - inicioTrimestre.getTime()) / 86400000;
+/**
+ * Calcula, para un proyecto y un año concreto, el tramo de cada fase
+ * que tenga fecha de fin registrada. Como la mayoría de proyectos
+ * solo tienen la fecha de FIN de cada fase (no la de inicio), se
+ * encadenan: el inicio de una fase es el fin de la fase anterior (o
+ * la fecha de inicio del proyecto, para la primera fase con datos).
+ * Al usar posiciones fraccionarias por día, dos fases consecutivas
+ * dentro del mismo mes quedan justo seguidas, sin solaparse.
+ */
+export function calcularTramosPorFase(
+  proyecto: Proyecto,
+  anio: number,
+): TramoFase[] {
+  const tramos: TramoFase[] = [];
+  let inicioTramoActual = proyecto.fechaInicio;
 
-  const fraccion = diasTotales > 0 ? diasTranscurridos / diasTotales : 0;
+  ordenFases.forEach((fase) => {
+    const detalle = proyecto.detallePorFase[fase];
+    if (!detalle?.fechaFin) {
+      return;
+    }
 
-  return columna + fraccion;
+    const posicion = calcularPosicionBarraMensual(
+      inicioTramoActual,
+      detalle.fechaFin,
+      anio,
+    );
+
+    if (posicion) {
+      tramos.push({ fase, posicion });
+    }
+
+    inicioTramoActual = detalle.fechaFin;
+  });
+
+  return tramos;
 }

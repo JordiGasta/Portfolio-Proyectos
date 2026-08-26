@@ -1,29 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import type { Proyecto } from "@/types/proyecto";
+import type { FaseProyecto, Proyecto } from "@/types/proyecto";
 import DetalleProyectoModal from "@/components/proyectos/DetalleProyectoModal";
-import { etiquetaTrimestre, generarTrimestres } from "@/lib/proyectos/capex";
 import {
-  calcularPosicionBarra,
-  calcularPosicionHoy,
+  calcularPosicionHoyMensual,
+  calcularTramosPorFase,
+  generarMeses,
 } from "@/lib/proyectos/cronograma";
 
-const coloresPorCategoria: Record<string, string> = {
-  "Creación de valor": "bg-blue-500/70",
-  "Protección de valor": "bg-amber-500/70",
-  Obligatorio: "bg-slate-500/70",
+const coloresPorFase: Record<FaseProyecto, string> = {
+  "Fase 0 — Fase previa": "bg-slate-400",
+  "Fase I — Inicio / Project Charter": "bg-sky-500",
+  "Fase IIA — Análisis de escenarios": "bg-indigo-500",
+  "Fase IIB — Ingeniería básica solución escogida": "bg-violet-500",
+  "Fase III — Ingeniería de detalle": "bg-fuchsia-500",
+  "Fase IV — Ejecución": "bg-amber-500",
+  "Fase V — Cierre": "bg-emerald-500",
 };
+
+const ordenLeyenda: FaseProyecto[] = [
+  "Fase 0 — Fase previa",
+  "Fase I — Inicio / Project Charter",
+  "Fase IIA — Análisis de escenarios",
+  "Fase IIB — Ingeniería básica solución escogida",
+  "Fase III — Ingeniería de detalle",
+  "Fase IV — Ejecución",
+  "Fase V — Cierre",
+];
 
 interface GanttChartProps {
   proyectos: Proyecto[];
+  anio: number;
 }
 
-export default function GanttChart({ proyectos }: GanttChartProps) {
+export default function GanttChart({ proyectos, anio }: GanttChartProps) {
   const [proyectoSeleccionado, setProyectoSeleccionado] =
     useState<Proyecto | null>(null);
-  const trimestres = generarTrimestres(8);
-  const posicionHoy = calcularPosicionHoy(trimestres);
+  const meses = generarMeses(anio);
+  const posicionHoy = calcularPosicionHoyMensual(anio);
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -33,37 +48,27 @@ export default function GanttChart({ proyectos }: GanttChartProps) {
             Proyecto
           </div>
           <div className="flex flex-1">
-            {trimestres.map((trimestre) => (
+            {meses.map((mes) => (
               <div
-                key={etiquetaTrimestre(trimestre)}
+                key={mes.etiqueta}
                 className="flex-1 border-r border-slate-100 p-3 text-center text-xs font-medium text-slate-500 last:border-r-0"
               >
-                {etiquetaTrimestre(trimestre)}
+                {mes.etiqueta}
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative">
-          <div
-            className="pointer-events-none absolute bottom-0 top-0 z-10 w-px bg-rose-400"
-            style={{ left: `calc(220px + ${(posicionHoy / 8) * 100}%)` }}
-          />
+          {posicionHoy !== null && (
+            <div
+              className="pointer-events-none absolute bottom-0 top-0 z-10 w-px bg-rose-400"
+              style={{ left: `calc(220px + ${(posicionHoy / 12) * 100}%)` }}
+            />
+          )}
 
           {proyectos.map((proyecto) => {
-            const detalleEjecucion =
-              proyecto.detallePorFase["Fase IV — Ejecución"];
-            const tieneFechas = Boolean(
-              detalleEjecucion?.fechaInicio && detalleEjecucion?.fechaFin,
-            );
-            const posicion =
-              tieneFechas && detalleEjecucion
-                ? calcularPosicionBarra(
-                    detalleEjecucion.fechaInicio as string,
-                    detalleEjecucion.fechaFin as string,
-                    trimestres,
-                  )
-                : null;
+            const tramos = calcularTramosPorFase(proyecto, anio);
 
             return (
               <div
@@ -81,25 +86,38 @@ export default function GanttChart({ proyectos }: GanttChartProps) {
                   </button>
                 </div>
 
-                <div className="relative flex flex-1 items-center overflow-hidden">
-                  <div className="grid h-10 w-full grid-cols-8">
-                    {posicion ? (
-                      <button
-                        type="button"
-                        onClick={() => setProyectoSeleccionado(proyecto)}
-                        title={proyecto.nombre}
-                        className={`my-2 rounded-md ${coloresPorCategoria[proyecto.categoria]}`}
-                        style={{
-                          gridColumnStart: posicion.inicio + 1,
-                          gridColumnEnd: posicion.inicio + 1 + posicion.ancho,
-                        }}
-                      />
-                    ) : (
-                      <div className="col-span-8 flex items-center truncate px-3 text-xs text-slate-400">
-                        (Fecha de ejecución pendiente)
+                <div className="relative flex-1 overflow-hidden" style={{ height: "40px" }}>
+                  {tramos.length > 0 ? (
+                    <div className="relative h-10" style={{ height: "40px" }}>
+                      {/* Líneas de fondo de cada mes, solo para referencia visual */}
+                      <div className="absolute inset-0 flex">
+                        {meses.map((mes) => (
+                          <div
+                            key={mes.etiqueta}
+                            className="flex-1 border-r border-slate-50 last:border-r-0"
+                          />
+                        ))}
                       </div>
-                    )}
-                  </div>
+
+                      {tramos.map(({ fase, posicion }) => (
+                        <button
+                          key={fase}
+                          type="button"
+                          onClick={() => setProyectoSeleccionado(proyecto)}
+                          title={`${proyecto.nombre} — ${fase}`}
+                          className={`absolute top-2 bottom-2 rounded-md ${coloresPorFase[fase]}`}
+                          style={{
+                            left: `${(posicion.inicio / 12) * 100}%`,
+                            width: `${(posicion.ancho / 12) * 100}%`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex h-10 items-center truncate px-3 text-xs text-slate-400">
+                      (Sin fases dentro de {anio})
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -107,10 +125,14 @@ export default function GanttChart({ proyectos }: GanttChartProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-6 border-t border-slate-200 p-4 text-xs text-slate-600">
-        <LeyendaItem color="bg-blue-500/70" etiqueta="Creación de valor" />
-        <LeyendaItem color="bg-amber-500/70" etiqueta="Protección de valor" />
-        <LeyendaItem color="bg-slate-500/70" etiqueta="Obligatorio" />
+      <div className="flex flex-wrap items-center gap-4 border-t border-slate-200 p-4 text-xs text-slate-600">
+        {ordenLeyenda.map((fase) => (
+          <LeyendaItem
+            key={fase}
+            color={coloresPorFase[fase]}
+            etiqueta={fase.split("—")[0].trim()}
+          />
+        ))}
         <div className="flex items-center gap-2">
           <span className="h-4 w-px bg-rose-400" />
           <span>Hoy</span>

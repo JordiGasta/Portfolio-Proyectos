@@ -17,6 +17,8 @@ export interface ConfiguracionSharePoint {
   clientSecret: string;
   siteId: string;
   listId: string;
+  /** ID de la lista HistoricoCapexAnual. */
+  listaHistoricoId: string;
 }
 
 export function obtenerConfiguracionSharePoint(): ConfiguracionSharePoint | null {
@@ -25,12 +27,13 @@ export function obtenerConfiguracionSharePoint(): ConfiguracionSharePoint | null
   const clientSecret = process.env.AZURE_CLIENT_SECRET;
   const siteId = process.env.SHAREPOINT_SITE_ID;
   const listId = process.env.SHAREPOINT_LIST_ID;
+  const listaHistoricoId = process.env.SHAREPOINT_HISTORICO_LIST_ID;
 
-  if (!tenantId || !clientId || !clientSecret || !siteId || !listId) {
+  if (!tenantId || !clientId || !clientSecret || !siteId || !listId || !listaHistoricoId) {
     return null;
   }
 
-  return { tenantId, clientId, clientSecret, siteId, listId };
+  return { tenantId, clientId, clientSecret, siteId, listId, listaHistoricoId };
 }
 
 export function sharePointEstaConfigurado(): boolean {
