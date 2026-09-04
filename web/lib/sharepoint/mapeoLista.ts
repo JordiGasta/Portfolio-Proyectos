@@ -27,6 +27,7 @@ const CAMPO_COSTE_FASE: Record<FaseProyecto, string> = {
   "Fase III — Ingeniería de detalle": "CosteFaseIII",
   "Fase IV — Ejecución": "CosteFaseIV",
   "Fase V — Cierre": "CosteFaseV",
+  "N/A": "",
 };
 
 const CAMPO_INICIO_FASE: Partial<Record<FaseProyecto, string>> = {

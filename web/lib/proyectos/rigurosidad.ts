@@ -13,36 +13,49 @@ const MATRIZ: Record<FaseProyecto, Record<Rigurosidad, AplicacionFase>> = {
     R1: "no-aplica",
     R2: "opcional",
     R3: "obligatoria",
+      "N/A": "no-aplica",
   },
   "Fase I — Inicio / Project Charter": {
     R1: "obligatoria",
     R2: "obligatoria",
     R3: "obligatoria",
+      "N/A": "no-aplica",
   },
   "Fase IIA — Análisis de escenarios": {
     R1: "no-aplica",
     R2: "opcional",
     R3: "obligatoria",
+      "N/A": "no-aplica",
   },
   "Fase IIB — Ingeniería básica solución escogida": {
     R1: "no-aplica",
     R2: "no-aplica",
     R3: "obligatoria",
+      "N/A": "no-aplica",
   },
   "Fase III — Ingeniería de detalle": {
     R1: "no-aplica",
     R2: "obligatoria",
     R3: "obligatoria",
+      "N/A": "no-aplica",
   },
   "Fase IV — Ejecución": {
     R1: "obligatoria",
     R2: "obligatoria",
     R3: "obligatoria",
+      "N/A": "no-aplica",
   },
   "Fase V — Cierre": {
     R1: "no-aplica",
     R2: "obligatoria",
     R3: "obligatoria",
+    "N/A": "no-aplica",
+  },
+  "N/A": {
+    R1: "no-aplica",
+    R2: "no-aplica",
+    R3: "no-aplica",
+    "N/A": "no-aplica",
   },
 };
 
@@ -70,6 +83,7 @@ const GATE_POR_FASE: Record<FaseProyecto, Gate> = {
   "Fase III — Ingeniería de detalle": "G3",
   "Fase IV — Ejecución": "G4",
   "Fase V — Cierre": "G5",
+  "N/A": "G0",
 };
 
 /** Gates aplicables (correspondientes a fases obligatorias u opcionales) a una rigurosidad, en orden. */

@@ -20,6 +20,7 @@ export function estaRetrasado(proyecto: Proyecto): boolean {
   if (
     proyecto.estado === "Cancelado" ||
     proyecto.estado === "Terminado" ||
+    proyecto.estado === "En estudio" ||
     proyecto.fase === "Fase V — Cierre"
   ) {
     return false;
@@ -153,7 +154,8 @@ export function esProyectoZombie(proyecto: Proyecto): boolean {
   if (
     proyecto.estado === "En pausa" ||
     proyecto.estado === "Cancelado" ||
-    proyecto.estado === "Terminado"
+    proyecto.estado === "Terminado" ||
+    proyecto.estado === "En estudio"
   ) {
     return false;
   }
@@ -177,6 +179,7 @@ export function tieneGateVencido(proyecto: Proyecto): boolean {
   if (
     proyecto.estado === "Cancelado" ||
     proyecto.estado === "Terminado" ||
+    proyecto.estado === "En estudio" ||
     proyecto.fase === "Fase V — Cierre"
   ) {
     return false;
@@ -253,6 +256,7 @@ export const ordenEstadosProyecto: EstadoProyecto[] = [
   "En riesgo",
   "Fuera de control",
   "En pausa",
+  "En estudio",
   "Cancelado",
   "Terminado",
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type {
   CategoriaProyecto,
@@ -120,6 +120,71 @@ export default function ProyectoFormModal({
     }));
   };
 
+  /**
+   * Guarda la Rigurosidad, Fase y Gate justo antes de pasar a "En
+   * estudio", para poder restaurarlos si el proyecto vuelve a
+   * cualquier otro estado. Sin esto, al salir de "En estudio" los
+   * campos quedarían en "N/A" sin ninguna opción válida que elegir
+   * (bucle sin salida).
+   */
+  const valoresPreviosAEnEstudio = useRef<{
+    rigurosidad: Rigurosidad;
+    fase: FaseProyecto;
+    gateActual: Gate;
+  } | null>(null);
+
+  const manejarCambioEstado = (nuevoEstado: EstadoProyecto) => {
+    if (nuevoEstado === "En estudio") {
+      valoresPreviosAEnEstudio.current = {
+        rigurosidad: proyecto.rigurosidad,
+        fase: proyecto.fase,
+        gateActual: proyecto.gateActual,
+      };
+      setProyecto((actual) => ({
+        ...actual,
+        estado: nuevoEstado,
+        fase: "N/A",
+        rigurosidad: "N/A",
+        gateActual: "G0",
+        gateStatus: [0, 0, 0, 0, 0, 0, 0],
+      }));
+      return;
+    }
+
+    if (proyecto.estado === "En estudio") {
+      const previos = valoresPreviosAEnEstudio.current;
+      const rigurosidadRestaurada = previos?.rigurosidad ?? "R1";
+      const fasesDeEsaRigurosidad = fasesAplicables(rigurosidadRestaurada);
+      const faseRestaurada =
+        previos && previos.fase !== "N/A"
+          ? previos.fase
+          : fasesDeEsaRigurosidad[0];
+      const gateRestaurado =
+        previos && previos.gateActual !== "G0"
+          ? previos.gateActual
+          : gatesAplicables(rigurosidadRestaurada)[0];
+
+      setProyecto((actual) => ({
+        ...actual,
+        estado: nuevoEstado,
+        rigurosidad: rigurosidadRestaurada,
+        fase: faseRestaurada,
+        gateActual: gatesAplicables(rigurosidadRestaurada).includes(gateRestaurado)
+          ? gateRestaurado
+          : gatesAplicables(rigurosidadRestaurada)[0],
+        gateStatus: derivarGateStatusDesdeGateActual(
+          gatesAplicables(rigurosidadRestaurada).includes(gateRestaurado)
+            ? gateRestaurado
+            : gatesAplicables(rigurosidadRestaurada)[0],
+        ),
+      }));
+      valoresPreviosAEnEstudio.current = null;
+      return;
+    }
+
+    actualizarCampo("estado", nuevoEstado);
+  };
+
   const actualizarDetalleFase = (
     fase: FaseProyecto,
     campo: keyof DetalleFase,
@@ -234,9 +299,11 @@ export default function ProyectoFormModal({
 
               <Campo etiqueta="Rigurosidad *">
                 <select
-                  required value={proyecto.rigurosidad}
+                  required
+                  disabled={proyecto.estado === "En estudio"}
+                  value={proyecto.rigurosidad}
                   onChange={(e) => actualizarCampo("rigurosidad", e.target.value as Rigurosidad)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100"
                 >
                   {rigurosidades.map((r) => (
                     <option key={r} value={r}>
@@ -249,9 +316,11 @@ export default function ProyectoFormModal({
 
               <Campo etiqueta="Fase actual *">
                 <select
-                  required value={proyecto.fase}
+                  required
+                  disabled={proyecto.estado === "En estudio"}
+                  value={proyecto.fase}
                   onChange={(e) => actualizarCampo("fase", e.target.value as FaseProyecto)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100"
                 >
                   {fasesMostradas.map((fase) => <option key={fase} value={fase}>{fase}</option>)}
                 </select>
@@ -386,7 +455,7 @@ export default function ProyectoFormModal({
               <Campo etiqueta="Estado">
                 <select
                   value={proyecto.estado}
-                  onChange={(e) => actualizarCampo("estado", e.target.value as EstadoProyecto)}
+                  onChange={(e) => manejarCambioEstado(e.target.value as EstadoProyecto)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                 >
                   {ordenEstadosProyecto.map((e2) => <option key={e2} value={e2}>{e2}</option>)}
@@ -395,9 +464,10 @@ export default function ProyectoFormModal({
 
               <Campo etiqueta="Gate actual">
                 <select
+                  disabled={proyecto.estado === "En estudio"}
                   value={proyecto.gateActual}
                   onChange={(e) => cambiarGateActual(e.target.value as Gate)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100"
                 >
                   {gatesMostrados.map((gate) => <option key={gate} value={gate}>{gate}</option>)}
                 </select>

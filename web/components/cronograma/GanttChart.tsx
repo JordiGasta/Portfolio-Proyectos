@@ -17,6 +17,7 @@ const coloresPorFase: Record<FaseProyecto, string> = {
   "Fase III — Ingeniería de detalle": "bg-fuchsia-500",
   "Fase IV — Ejecución": "bg-amber-500",
   "Fase V — Cierre": "bg-emerald-500",
+  "N/A": "bg-gray-300",
 };
 
 const ordenLeyenda: FaseProyecto[] = [
@@ -67,7 +68,9 @@ export default function GanttChart({ proyectos, anio }: GanttChartProps) {
             />
           )}
 
-          {proyectos.map((proyecto) => {
+          {proyectos
+            .filter((proyecto) => proyecto.estado !== "En estudio")
+            .map((proyecto) => {
             const tramos = calcularTramosPorFase(proyecto, anio);
 
             return (

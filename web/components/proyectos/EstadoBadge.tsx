@@ -11,6 +11,7 @@ const estilosPorEstado: Record<EstadoProyecto, string> = {
   "En pausa": "bg-slate-100 text-slate-600",
   Cancelado: "bg-slate-200 text-slate-700",
   Terminado: "bg-sky-100 text-sky-700",
+  "En estudio": "bg-cyan-100 text-cyan-700",
 };
 
 export default function EstadoBadge({ estado }: EstadoBadgeProps) {

@@ -5,9 +5,10 @@ export type FaseProyecto =
   | "Fase IIB — Ingeniería básica solución escogida"
   | "Fase III — Ingeniería de detalle"
   | "Fase IV — Ejecución"
-  | "Fase V — Cierre";
+  | "Fase V — Cierre"
+  | "N/A";
 
-export type Rigurosidad = "R1" | "R2" | "R3";
+export type Rigurosidad = "R1" | "R2" | "R3" | "N/A";
 
 export type Prioridad = "Alta" | "Media" | "Baja";
 
@@ -37,6 +38,7 @@ export type EstadoProyecto =
   | "En riesgo"
   | "Fuera de control"
   | "En pausa"
+  | "En estudio"
   | "Cancelado"
   | "Terminado";
 

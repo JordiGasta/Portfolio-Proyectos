@@ -11,6 +11,7 @@ const colores: Record<EstadoProyecto, string> = {
   "En pausa": "bg-slate-400",
   Cancelado: "bg-slate-600",
   Terminado: "bg-sky-500",
+  "En estudio": "bg-cyan-500",
 };
 
 export default function EstadoSaludDot({ estado }: EstadoSaludDotProps) {
