@@ -86,6 +86,10 @@ export function proyectoAFieldsSharePoint(
     Carryover2025: proyecto.carryover2025,
   };
 
+  if (proyecto.costCenter) {
+    fields.CostCenter = proyecto.costCenter;
+  }
+
   if (proyecto.numeroJobBC) fields.BCJobNumber = proyecto.numeroJobBC;
   if (proyecto.fechaProximoGate)
     fields.Fechapr_x00f3_ximogate = fechaGraph(proyecto.fechaProximoGate);
@@ -201,5 +205,6 @@ export function itemSharePointAProyecto(
     detallePorFase,
     gastoMensual2026: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     carryover2025: (fields.Carryover2025 as number) ?? 0,
+    costCenter: (fields.CostCenter as string) || undefined,
   };
 }

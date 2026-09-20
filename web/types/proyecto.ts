@@ -100,4 +100,6 @@ export interface Proyecto {
   gastoMensual2026: number[];
   /** Presupuesto de carryover (columna 'Carryover 2025' de SharePoint / 'Carryover 2025 + New Projects 2026' del Excel original). */
   carryover2025: number;
+  /** Centro de coste en Business Central, para consultar sus movimientos reales. */
+  costCenter?: string;
 }

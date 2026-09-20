@@ -1,38 +1,24 @@
 /**
- * Configuración de la conexión a Business Central.
- *
- * Se reutiliza la misma aplicación de Azure AD que para SharePoint
- * (AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET), ya que es
- * habitual usar el mismo registro para varias APIs de Microsoft. Si
- * IT prefiere una aplicación separada solo para BC, basta con
- * cambiar estas tres variables por unas específicas.
- *
- * Además de los permisos de Azure AD, Business Central normalmente
- * exige dar de alta la aplicación como "Application User" dentro del
- * propio BC, con un conjunto de permisos asignado.
+ * Configuración de la conexión a la API interna de Business Central
+ * de la empresa (no es la API estándar de Microsoft, es un servidor
+ * propio con autenticación Basic Auth).
  */
-export interface ConfiguracionBusinessCentral {
-  tenantId: string;
-  clientId: string;
-  clientSecret: string;
-  /** Nombre del entorno de BC, p. ej. "production" o "sandbox". */
-  entorno: string;
-  /** ID de la empresa dentro de Business Central sobre la que consultar. */
-  companyId: string;
+export interface ConfiguracionBC {
+  baseUrl: string;
+  usuario: string;
+  contrasena: string;
 }
 
-export function obtenerConfiguracionBC(): ConfiguracionBusinessCentral | null {
-  const tenantId = process.env.AZURE_TENANT_ID;
-  const clientId = process.env.AZURE_CLIENT_ID;
-  const clientSecret = process.env.AZURE_CLIENT_SECRET;
-  const entorno = process.env.BC_ENVIRONMENT;
-  const companyId = process.env.BC_COMPANY_ID;
+export function obtenerConfiguracionBC(): ConfiguracionBC | null {
+  const baseUrl = process.env.BC_API_BASE_URL;
+  const usuario = process.env.BC_API_USER;
+  const contrasena = process.env.BC_API_PASSWORD;
 
-  if (!tenantId || !clientId || !clientSecret || !entorno || !companyId) {
+  if (!baseUrl || !usuario || !contrasena) {
     return null;
   }
 
-  return { tenantId, clientId, clientSecret, entorno, companyId };
+  return { baseUrl, usuario, contrasena };
 }
 
 export function businessCentralEstaConfigurado(): boolean {

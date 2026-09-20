@@ -28,7 +28,8 @@ interface ActualizacionBC {
   codigo: string;
   ok: boolean;
   detalle: string;
-  total?: number;
+  gastado?: number;
+  comprometido?: number;
   mensual2026?: number[];
 }
 
@@ -132,14 +133,15 @@ export function ProyectosProvider({ children }: { children: ReactNode }) {
         const actualizacion = actualizaciones.find(
           (a) => a.codigo === proyecto.codigo && a.ok,
         );
-        if (!actualizacion || actualizacion.total === undefined) {
+        if (!actualizacion || actualizacion.gastado === undefined) {
           return proyecto;
         }
 
         return {
           ...proyecto,
-          importeGastado: actualizacion.total,
-          etc: Math.max(0, proyecto.presupuestoAprobado - actualizacion.total),
+          importeGastado: actualizacion.gastado,
+          importeComprometido: actualizacion.comprometido ?? proyecto.importeComprometido,
+          etc: Math.max(0, proyecto.presupuestoAprobado - actualizacion.gastado),
           gastoMensual2026: actualizacion.mensual2026 ?? proyecto.gastoMensual2026,
         };
       }),
