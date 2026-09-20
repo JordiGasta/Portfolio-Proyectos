@@ -37,9 +37,13 @@ export async function llamarBC(rutaConQuery: string): Promise<unknown> {
  * central).
  */
 export function codigoParaBC(codigoApp: string): string {
-  const coincide = codigoApp.match(/^P0*(\d+)$/i);
+  // El código de la app tiene 3 dígitos con cero inicial (P009,
+  // P022...). La API interna de BC espera solo 2 dígitos (P09, P22),
+  // es decir: se quita únicamente el primer dígito si es un "0" al
+  // principio de los 3 números, no todos los ceros.
+  const coincide = codigoApp.match(/^P(\d{3})$/i);
   if (coincide) {
-    return `P${coincide[1]}`;
+    return `P${coincide[1].slice(1)}`;
   }
   return codigoApp;
 }

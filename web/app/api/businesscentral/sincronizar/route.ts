@@ -1,19 +1,37 @@
 import { NextResponse } from "next/server";
-import { leerProyectosLocales } from "@/lib/proyectos/almacenLocal";
+import { leerProyectosDesdeSharePoint } from "@/lib/sharepoint/leerProyectos";
+import {
+  obtenerConfiguracionSharePoint,
+  sharePointEstaConfigurado,
+} from "@/lib/sharepoint/configuracion";
+import { llamarGraph } from "@/lib/sharepoint/graphClient";
 import { businessCentralEstaConfigurado } from "@/lib/businesscentral/configuracion";
 import {
   obtenerActualsDesdeBC,
   obtenerComprometidoDesdeBC,
 } from "@/lib/businesscentral/actuals";
 
-/**
- * Sincronización con la API interna de Business Central: para cada
- * proyecto con un centro de coste (costCenter) asignado, trae el
- * gasto real (CapexAccountMovs) y el comprometido (PurchaseLines).
- *
- * Mientras la conexión no esté configurada, devuelve un aviso claro
- * para que el resto de la app siga funcionando con normalidad.
- */
+interface ElementoListaSharePoint {
+  id: string;
+  fields: { ProjectID?: string };
+}
+
+async function buscarIdElementoPorCodigo(
+  siteId: string,
+  listId: string,
+  codigo: string,
+): Promise<string | null> {
+  const datos = (await llamarGraph(
+    `/sites/${siteId}/lists/${listId}/items?expand=fields`,
+  )) as { value: ElementoListaSharePoint[] };
+
+  const encontrado = datos.value.find(
+    (item) => item.fields.ProjectID === codigo,
+  );
+
+  return encontrado ? encontrado.id : null;
+}
+
 export async function POST() {
   if (!businessCentralEstaConfigurado()) {
     return NextResponse.json({
@@ -23,8 +41,11 @@ export async function POST() {
     });
   }
 
-  const proyectos = await leerProyectosLocales();
+  const proyectos = await leerProyectosDesdeSharePoint();
   const conCostCenter = proyectos.filter((p) => p.costCenter);
+
+  const spConfigurado = sharePointEstaConfigurado();
+  const configSP = spConfigurado ? obtenerConfiguracionSharePoint()! : null;
 
   const actualizaciones: Array<{
     codigo: string;
@@ -33,6 +54,7 @@ export async function POST() {
     gastado?: number;
     comprometido?: number;
     mensual2026?: number[];
+    guardadoEnSharePoint?: boolean;
   }> = [];
 
   for (const proyecto of conCostCenter) {
@@ -42,6 +64,35 @@ export async function POST() {
         obtenerComprometidoDesdeBC(proyecto.codigo, proyecto.costCenter!),
       ]);
 
+      let guardadoEnSharePoint = false;
+
+      if (configSP) {
+        try {
+          const idElemento = await buscarIdElementoPorCodigo(
+            configSP.siteId,
+            configSP.listId,
+            proyecto.codigo,
+          );
+
+          if (idElemento) {
+            await llamarGraph(
+              `/sites/${configSP.siteId}/lists/${configSP.listId}/items/${idElemento}/fields`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({
+                  Actuals: actuals.total,
+                  ImporteComprometido: comprometido,
+                }),
+              },
+            );
+            guardadoEnSharePoint = true;
+          }
+        } catch {
+          // Si falla el guardado en SharePoint, seguimos devolviendo
+          // el dato real de BC igualmente.
+        }
+      }
+
       actualizaciones.push({
         codigo: proyecto.codigo,
         ok: true,
@@ -49,6 +100,7 @@ export async function POST() {
         gastado: actuals.total,
         comprometido,
         mensual2026: actuals.mensual2026,
+        guardadoEnSharePoint,
       });
     } catch (error) {
       actualizaciones.push({
