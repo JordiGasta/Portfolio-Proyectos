@@ -17,7 +17,6 @@ const enlaces: EnlaceMenu[] = [
   { href: "/cronograma", label: "Cronograma" },
   { href: "/demanda-capex", label: "Demanda CAPEX" },
   { href: "/seguimiento-gates", label: "Seguimiento de gates" },
-  { href: "/informe-consejo", label: "Informe de consejo" },
 ];
 
 function formatearHora(fecha: Date): string {

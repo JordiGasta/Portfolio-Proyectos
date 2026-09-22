@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Proyecto } from "@/types/proyecto";
 import {
   calcularDatosPorSemestreDeAnio,
-  detectarAnios,
   type ContribucionProyectoAnio,
   type DatosSemestreAnio,
   type FilaHistoricoCapex,
@@ -13,60 +12,21 @@ import { formatearEuros } from "@/lib/format/formato";
 
 interface DemandaSemestralChartProps {
   proyectos: Proyecto[];
+  historico: FilaHistoricoCapex[];
+  anio: number;
 }
 
 const ALTURA_GRAFICO = 240;
 
 export default function DemandaSemestralChart({
   proyectos,
+  historico,
+  anio,
 }: DemandaSemestralChartProps) {
-  const anios = detectarAnios();
-  const anioActual = new Date().getFullYear();
-  const [anioSeleccionado, setAnioSeleccionado] = useState(anioActual);
-  const [historico, setHistorico] = useState<FilaHistoricoCapex[]>([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    let activo = true;
-
-    async function cargarHistorico() {
-      try {
-        const respuesta = await fetch("/api/historico-capex", {
-          cache: "no-store",
-        });
-        const datos = await respuesta.json();
-        if (activo && Array.isArray(datos.historico)) {
-          setHistorico(datos.historico);
-        }
-      } catch {
-        // Si falla, se queda el histórico vacío; la vista mostrará "—".
-      } finally {
-        if (activo) setCargando(false);
-      }
-    }
-
-    cargarHistorico();
-    return () => {
-      activo = false;
-    };
-  }, []);
-
   const [semestreSeleccionado, setSemestreSeleccionado] =
     useState<DatosSemestreAnio | null>(null);
 
-  if (cargando) {
-    return (
-      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="text-sm text-slate-500">Cargando datos de CAPEX…</p>
-      </article>
-    );
-  }
-
-  const [s1, s2] = calcularDatosPorSemestreDeAnio(
-    proyectos,
-    historico,
-    anioSeleccionado,
-  );
+  const [s1, s2] = calcularDatosPorSemestreDeAnio(proyectos, historico, anio);
   const datos = [s1, s2];
 
   const maximo = Math.max(
@@ -86,24 +46,7 @@ export default function DemandaSemestralChart({
         desglose por proyecto.
       </p>
 
-      <div className="mb-6 mt-4 flex gap-2">
-        {anios.map((anio) => (
-          <button
-            key={anio}
-            type="button"
-            onClick={() => setAnioSeleccionado(anio)}
-            className={`rounded-md px-4 py-2 text-sm font-medium ${
-              anio === anioSeleccionado
-                ? "bg-slate-900 text-white"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            {anio}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex items-end justify-around gap-8">
+      <div className="mt-4 flex items-end justify-around gap-8">
         {datos.map((dato) => {
           const alturaPresupuesto = Math.round(
             (dato.presupuesto / maximo) * ALTURA_GRAFICO * 0.88,
@@ -152,7 +95,7 @@ export default function DemandaSemestralChart({
               </div>
 
               <span className="mt-3 text-sm font-medium text-slate-600">
-                S{dato.semestre} {anioSeleccionado}
+                S{dato.semestre} {anio}
                 {dato.esEstimado && (
                   <span className="ml-1 text-[11px] font-normal text-amber-600">
                     (estimado)
@@ -178,7 +121,7 @@ export default function DemandaSemestralChart({
       {semestreSeleccionado && (
         <ModalDesgloseSemestre
           datos={semestreSeleccionado}
-          anio={anioSeleccionado}
+          anio={anio}
           onCerrar={() => setSemestreSeleccionado(null)}
         />
       )}

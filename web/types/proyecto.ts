@@ -102,4 +102,10 @@ export interface Proyecto {
   carryover2025: number;
   /** Centro de coste en Business Central, para consultar sus movimientos reales. */
   costCenter?: string;
+  /** Total de pedidos de compra registrados en Business Central (AmountLCY_FCY). */
+  importePedidoTotal?: number;
+  /** Importe pendiente de recibir de los pedidos abiertos (OutstandingAmount). */
+  importePendienteRecibir?: number;
+  /** Importe ya recibido pero aún no facturado (AmtRcdNotInvoiced). */
+  importeRecibidoNoFacturado?: number;
 }
